@@ -16,6 +16,7 @@ namespace Telegram.Models
         public string Phone { get; set; } = string.Empty;
         public long AccessHash { get; set; }
         public bool IsForeign { get; set; }
+        public Type Contructor { get; set; }
 
         public static explicit operator Contact(User user)
         {
@@ -28,7 +29,9 @@ namespace Telegram.Models
                     FirstName = userForeignContact.firstName,
                     LastName = userForeignContact.lastName,
                     Username = userForeignContact.username,
-                    IsForeign = false
+                    Phone = userForeignContact.phone,
+                    IsForeign = false,
+                    Contructor = typeof(UserSelfConstructor)
                 };
             }
             else if (user is UserContactConstructor)
@@ -42,7 +45,23 @@ namespace Telegram.Models
                     Username = userContact.username,
                     Phone = userContact.phone,
                     AccessHash = userContact.accessHash,
-                    IsForeign = false
+                    IsForeign = false,
+                    Contructor = typeof(UserContactConstructor)
+                };
+            }
+            else if (user is UserRequestConstructor)
+            {
+                UserRequestConstructor userRequestContact = user.As<UserRequestConstructor>();
+                return new Contact
+                {
+                    Id = userRequestContact.id,
+                    FirstName = userRequestContact.firstName,
+                    LastName = userRequestContact.lastName,
+                    Phone = userRequestContact.phone,
+                    Username = userRequestContact.username,
+                    AccessHash = userRequestContact.accessHash,
+                    IsForeign = false,
+                    Contructor = typeof(UserRequestConstructor)
                 };
             }
             else if (user is UserForeignConstructor)
@@ -55,7 +74,8 @@ namespace Telegram.Models
                     LastName = userForeignContact.lastName,
                     Username = userForeignContact.username,
                     AccessHash = userForeignContact.accessHash,
-                    IsForeign = true
+                    IsForeign = true,
+                    Contructor = typeof(UserForeignConstructor)
                 };
             }
             return null;

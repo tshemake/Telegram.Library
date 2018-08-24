@@ -78,11 +78,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client.cs" />
+    <Compile Include="Models\Chat.cs" />
     <Compile Include="Models\Contact.cs" />
     <Compile Include="FileSessionStore.cs" />
     <Compile Include="IConfiguration.cs" />
     <Compile Include="ILogger.cs" />
+    <Compile Include="Models\Dialog.cs" />
     <Compile Include="Models\Message.cs" />
+    <Compile Include="Models\MessagesDialog.cs" />
     <Compile Include="Models\SentMessage.cs" />
     <Compile Include="Models\Serializable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

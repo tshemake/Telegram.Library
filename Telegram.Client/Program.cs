@@ -39,9 +39,12 @@ namespace Telegram
             //Run(MessagesSendMessage, "messages.sendMessage");
             #endregion
             #region Отпаравляем статус о печати и прекращении печати
-            Run(SendMessageTypingAction, "messages.setTyping");
-            Thread.Sleep(5000);
-            Run(SendMessageCancelAction, "messages.setTyping");
+            //Run(SendMessageTypingAction, "messages.setTyping");
+            //Thread.Sleep(5000);
+            //Run(SendMessageCancelAction, "messages.setTyping");
+            #endregion
+            #region Получить новые события
+            Run(MessagesGetDialogs, "messages.getDialogs");
             #endregion
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
@@ -179,6 +182,18 @@ namespace Telegram
                 successfully = s_client.SetCancelAllActionAsync(contact).Result;
                 Console.WriteLine("Off typing status {0}.", successfully ? "successfully" : "not");
             }
+        }
+
+        /// <summary>
+        /// Получить новые события
+        /// </summary>
+        static void MessagesGetDialogs()
+        {
+            MessagesDialog messagesDialog = s_client.GetDialogsAsync().Result;
+            Console.WriteLine("Dialogs:\n\t{0}", string.Join("\n\t", messagesDialog.Dialogs));
+            Console.WriteLine("Chats:\n\t{0}", string.Join("\n\t", messagesDialog.Chats));
+            Console.WriteLine("Messages:\n\t{0}", string.Join("\n\t", messagesDialog.Messages));
+            Console.WriteLine("Contacts:\n\t{0}", string.Join("\n\t", messagesDialog.Contacts));
         }
     }
 }

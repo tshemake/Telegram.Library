@@ -83,6 +83,43 @@ namespace Telegram
             }
         }
 
+        public async Task<Models.MessagesDialog> GetDialogsAsync()
+        {
+            await ConnectAsync();
+
+            int limit = 30;
+            Models.MessagesDialog messagesDialog = new Models.MessagesDialog
+            {
+                Dialogs = new List<Models.Dialog>(),
+                Chats = new List<Models.Chat>(),
+                Messages = new List<Models.Message>(),
+                Contacts = new List<Models.Contact>()
+            };
+            MessagesDialogs result = await _client.GetDialogs(0, limit);
+            if (result is MessagesDialogsConstructor messagesDialogsConstructor)
+            {
+                messagesDialog.Dialogs.AddRange(messagesDialogsConstructor.dialogs.Select(d => (Models.Dialog)d));
+                messagesDialog.Chats.AddRange(messagesDialogsConstructor.chats.Select(c => (Models.Chat)c));
+                messagesDialog.Messages.AddRange(messagesDialogsConstructor.messages.Select(m => (Models.Message)m));
+                messagesDialog.Contacts.AddRange(messagesDialogsConstructor.users.Select(u => (Models.Contact)u));
+            }
+            else if (result is MessagesDialogsSliceConstructor messagesDialogsSliceConstructor)
+            {
+                int count = messagesDialogsSliceConstructor.count;
+                int total = limit;
+                do
+                {
+                    messagesDialog.Dialogs.AddRange(messagesDialogsSliceConstructor.dialogs.Select(d => (Models.Dialog)d));
+                    messagesDialog.Chats.AddRange(messagesDialogsSliceConstructor.chats.Select(c => (Models.Chat)c));
+                    messagesDialog.Messages.AddRange(messagesDialogsSliceConstructor.messages.Select(m => (Models.Message)m));
+                    messagesDialog.Contacts.AddRange(messagesDialogsSliceConstructor.users.Select(u => (Models.Contact)u));
+                    result = await _client.GetDialogs(total, limit);
+                } while (total < count);
+            }
+
+            return messagesDialog;
+        }
+
         public async Task<ICollection<Models.Contact>> GetContactsAsync()
         {
             await ConnectAsync();
@@ -362,6 +399,8 @@ namespace Telegram
 
         public async Task<bool> DeleteContactAsync(Models.Contact contact)
         {
+            await ConnectAsync();
+
             bool deleteSuccessfully = false;
             try
             {
