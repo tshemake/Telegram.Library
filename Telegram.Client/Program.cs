@@ -21,15 +21,18 @@ namespace Telegram
             #endregion
             #region Список контактов
             //Do(ContactsGetContacts, "contacts.getContacts");
-            //#endregion
-            //#region Поиск пользователя по имени
+            #endregion
+            #region Поиск пользователя по имени
             //Do(ContactsResolveUsername, "contacts.resolveUsername");
             #endregion
             #region Добавление в контакт
             //Do(ContactsImportContacts, "contacts.importContacts");
             #endregion
             #region Удалить из контактов
-            Do(ContactsDeleteContact, "contacts.deleteContact");
+            //Do(ContactsDeleteContact, "contacts.deleteContact");
+            #endregion
+            #region Зарегестрирован в телеграмме?
+            Do(AuthСheckPhone, "auth.checkPhone"); // На текущий момент всегда возвращает true
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -114,6 +117,15 @@ namespace Telegram
                 successfully = s_client.DeleteContactAsync(contact).Result;
             }
             Console.WriteLine("Number {0} removed from contact.", successfully ? "successfully" : "not");
+        }
+
+        /// <summary>
+        /// Зарегестрирован в телеграмме?
+        /// </summary>
+        static void AuthСheckPhone()
+        {
+            var phoneNumber = "79999999999";
+            Console.WriteLine("Phone number '{0}' was {1}registered.", phoneNumber, s_client.IsPhoneNumberRegisteredAsync(phoneNumber).Result ? "" : "not ");
         }
     }
 }
