@@ -30,6 +30,7 @@ namespace Telegram.Models
                     Body = messageConstructor.message
                 };
             }
+
             return null;
         }
 

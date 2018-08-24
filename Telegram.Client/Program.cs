@@ -32,9 +32,11 @@ namespace Telegram
             //Do(ContactsDeleteContact, "contacts.deleteContact");
             #endregion
             #region Зарегестрирован в телеграмме?
-            Do(AuthСheckPhone, "auth.checkPhone"); // На текущий момент всегда возвращает true
+            //Do(AuthСheckPhone, "auth.checkPhone"); // На текущий момент всегда возвращает true
             #endregion
-
+            #region Отправка сообщения
+            Do(MessagesSendMessage, "MessagesSendMessage");
+            #endregion
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
@@ -126,6 +128,21 @@ namespace Telegram
         {
             var phoneNumber = "79999999999";
             Console.WriteLine("Phone number '{0}' was {1}registered.", phoneNumber, s_client.IsPhoneNumberRegisteredAsync(phoneNumber).Result ? "" : "not ");
+        }
+
+        /// <summary>
+        /// Отправка сообщения
+        /// </summary>
+        static void MessagesSendMessage()
+        {
+            string phoneNumber = "79870292069";
+            string message = "Привет, Мир!";
+            Contact contact = s_client.GetContactByPhoneNumberAsync(phoneNumber).Result;
+            if (contact != null)
+            {
+                SentMessage sentMessage = s_client.SendMessageToContact(contact, message).Result;
+                Console.WriteLine("Send message to phone '{0}':\n\t{1}", phoneNumber, sentMessage);
+            }
         }
     }
 }

@@ -129,21 +129,23 @@ namespace Telegram
             return contacts.FirstOrDefault(c => c.Phone.Contains(normalizedPhoneNumber));
         }
 
-        public async Task SendMessageToContact(Models.Contact contact, string message)
+        public async Task<Models.SentMessage> SendMessageToContact(Models.Contact contact, string message)
         {
             if (string.IsNullOrEmpty(message))
-                return;
+                return null;
 
             await ConnectAsync();
 
+            SentMessage sentMessage = null;
             if (contact.IsForeign)
             {
-                await _client.SendMessage(new InputPeerForeignConstructor(contact.Id, contact.AccessHash), message);
+                sentMessage = await _client.SendMessage(new InputPeerForeignConstructor(contact.Id, contact.AccessHash), message);
             }
             else
             {
-                await _client.SendMessage(new InputPeerContactConstructor(contact.Id), message);
+               sentMessage = await _client.SendMessage(new InputPeerContactConstructor(contact.Id), message);
             }
+            return (Models.SentMessage)sentMessage;
         }
 
         public async Task<bool> IsPhoneNumberRegisteredAsync(string phoneNumber)

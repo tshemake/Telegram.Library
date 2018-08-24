@@ -83,6 +83,7 @@
     <Compile Include="IConfiguration.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Models\Message.cs" />
+    <Compile Include="Models\SentMessage.cs" />
     <Compile Include="Models\Serializable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
