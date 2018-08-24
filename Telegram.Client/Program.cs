@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Models;
 
@@ -17,31 +18,36 @@ namespace Telegram
         static void Main(string[] args)
         {
             #region Вход
-            Do(AuthSendCodeAndSignIn, "auth.sendCode, auth.signIn");
+            Run(AuthSendCodeAndSignIn, "auth.sendCode, auth.signIn");
             #endregion
             #region Список контактов
-            //Do(ContactsGetContacts, "contacts.getContacts");
+            //Run(ContactsGetContacts, "contacts.getContacts");
             #endregion
             #region Поиск пользователя по имени
-            //Do(ContactsResolveUsername, "contacts.resolveUsername");
+            //Run(ContactsResolveUsername, "contacts.resolveUsername");
             #endregion
             #region Добавление в контакт
-            //Do(ContactsImportContacts, "contacts.importContacts");
+            //Run(ContactsImportContacts, "contacts.importContacts");
             #endregion
             #region Удалить из контактов
-            //Do(ContactsDeleteContact, "contacts.deleteContact");
+            //Run(ContactsDeleteContact, "contacts.deleteContact");
             #endregion
             #region Зарегестрирован в телеграмме?
-            //Do(AuthСheckPhone, "auth.checkPhone"); // На текущий момент всегда возвращает true
+            //Run(AuthСheckPhone, "auth.checkPhone"); // На текущий момент всегда возвращает true
             #endregion
             #region Отправка сообщения
-            Do(MessagesSendMessage, "MessagesSendMessage");
+            //Run(MessagesSendMessage, "messages.sendMessage");
+            #endregion
+            #region Отпаравляем статус о печати и прекращении печати
+            Run(SendMessageTypingAction, "messages.setTyping");
+            Thread.Sleep(5000);
+            Run(SendMessageCancelAction, "messages.setTyping");
             #endregion
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
-        static void Do(Action action, string name)
+        static void Run(Action action, string name)
         {
             long milliseconds = 0;
             try
@@ -142,6 +148,36 @@ namespace Telegram
             {
                 SentMessage sentMessage = s_client.SendMessageToContact(contact, message).Result;
                 Console.WriteLine("Send message to phone '{0}':\n\t{1}", phoneNumber, sentMessage);
+            }
+        }
+
+        /// <summary>
+        /// Отпаравляем статус о печати
+        /// </summary>
+        static void SendMessageTypingAction()
+        {
+            bool successfully = false;
+            string phoneNumber = "79870292069";
+            Contact contact = s_client.GetContactByPhoneNumberAsync(phoneNumber).Result;
+            if (contact != null)
+            {
+                successfully = s_client.SetTypingActionAsync(contact).Result;
+                Console.WriteLine("On typing status {0}.", successfully ? "successfully" : "not");
+            }
+        }
+
+        /// <summary>
+        /// Отпаравляем статус о прекращении печати
+        /// </summary>
+        static void SendMessageCancelAction()
+        {
+            bool successfully = false;
+            string phoneNumber = "79870292069";
+            Contact contact = s_client.GetContactByPhoneNumberAsync(phoneNumber).Result;
+            if (contact != null)
+            {
+                successfully = s_client.SetCancelAllActionAsync(contact).Result;
+                Console.WriteLine("Off typing status {0}.", successfully ? "successfully" : "not");
             }
         }
     }
