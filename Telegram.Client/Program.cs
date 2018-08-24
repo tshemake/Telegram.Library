@@ -44,8 +44,12 @@ namespace Telegram
             //Run(SendMessageCancelAction, "messages.setTyping");
             #endregion
             #region Получить новые события
-            Run(MessagesGetDialogs, "messages.getDialogs");
+            //Run(MessagesGetDialogs, "messages.getDialogs");
             #endregion
+            #region Читаем сообщения
+            Run(MessagesGetHistory, "messages.getHistory");
+            #endregion
+
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
@@ -191,9 +195,22 @@ namespace Telegram
         {
             MessagesDialog messagesDialog = s_client.GetDialogsAsync().Result;
             Console.WriteLine("Dialogs:\n\t{0}", string.Join("\n\t", messagesDialog.Dialogs));
-            Console.WriteLine("Chats:\n\t{0}", string.Join("\n\t", messagesDialog.Chats));
             Console.WriteLine("Messages:\n\t{0}", string.Join("\n\t", messagesDialog.Messages));
+            Console.WriteLine("Chats:\n\t{0}", string.Join("\n\t", messagesDialog.Chats));
             Console.WriteLine("Contacts:\n\t{0}", string.Join("\n\t", messagesDialog.Contacts));
+        }
+
+        static void MessagesGetHistory()
+        {
+            string phoneNumber = "79870292069";
+            Contact contact = s_client.GetContactByPhoneNumberAsync(phoneNumber).Result;
+            if (contact != null)
+            {
+                History history = s_client.GetHistoryAsync(contact).Result;
+                Console.WriteLine("Messages:\n\t{0}", string.Join("\n\t", history.Messages));
+                Console.WriteLine("Chats:\n\t{0}", string.Join("\n\t", history.Chats));
+                Console.WriteLine("Contacts:\n\t{0}", string.Join("\n\t", history.Contacts));
+            }
         }
     }
 }

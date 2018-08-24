@@ -78,6 +78,18 @@ namespace Telegram.Models
                     Contructor = typeof(UserForeignConstructor)
                 };
             }
+            else if (user is UserDeletedConstructor)
+            {
+                UserDeletedConstructor userDeletedContact = user.As<UserDeletedConstructor>();
+                return new Contact
+                {
+                    Id = userDeletedContact.id,
+                    FirstName = userDeletedContact.firstName,
+                    LastName = userDeletedContact.lastName,
+                    Username = userDeletedContact.username,
+                    Contructor = typeof(UserDeletedConstructor)
+                };
+            }
             return null;
         }
     }

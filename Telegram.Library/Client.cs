@@ -91,30 +91,32 @@ namespace Telegram
             Models.MessagesDialog messagesDialog = new Models.MessagesDialog
             {
                 Dialogs = new List<Models.Dialog>(),
-                Chats = new List<Models.Chat>(),
-                Messages = new List<Models.Message>(),
-                Contacts = new List<Models.Contact>()
+                Messages = new List<Models.Message>()
             };
             MessagesDialogs result = await _client.GetDialogs(0, limit);
             if (result is MessagesDialogsConstructor messagesDialogsConstructor)
             {
                 messagesDialog.Dialogs.AddRange(messagesDialogsConstructor.dialogs.Select(d => (Models.Dialog)d));
-                messagesDialog.Chats.AddRange(messagesDialogsConstructor.chats.Select(c => (Models.Chat)c));
                 messagesDialog.Messages.AddRange(messagesDialogsConstructor.messages.Select(m => (Models.Message)m));
-                messagesDialog.Contacts.AddRange(messagesDialogsConstructor.users.Select(u => (Models.Contact)u));
+                messagesDialog.AddChats(messagesDialogsConstructor.chats.Select(c => (Models.Chat)c));
+                messagesDialog.AddContacts(messagesDialogsConstructor.users.Select(u => (Models.Contact)u));
             }
             else if (result is MessagesDialogsSliceConstructor messagesDialogsSliceConstructor)
             {
                 int count = messagesDialogsSliceConstructor.count;
-                int total = limit;
+                int total = 0;
                 do
                 {
+                    total += limit;
                     messagesDialog.Dialogs.AddRange(messagesDialogsSliceConstructor.dialogs.Select(d => (Models.Dialog)d));
-                    messagesDialog.Chats.AddRange(messagesDialogsSliceConstructor.chats.Select(c => (Models.Chat)c));
                     messagesDialog.Messages.AddRange(messagesDialogsSliceConstructor.messages.Select(m => (Models.Message)m));
-                    messagesDialog.Contacts.AddRange(messagesDialogsSliceConstructor.users.Select(u => (Models.Contact)u));
+                    messagesDialog.AddChats(messagesDialogsSliceConstructor.chats.Select(c => (Models.Chat)c));
+                    messagesDialog.AddContacts(messagesDialogsSliceConstructor.users.Select(u => (Models.Contact)u));
+                    if (total > count)
+                        break;
                     result = await _client.GetDialogs(total, limit);
-                } while (total < count);
+                    messagesDialogsSliceConstructor = (MessagesDialogsSliceConstructor)result;
+                } while (true);
             }
 
             return messagesDialog;
@@ -246,13 +248,17 @@ namespace Telegram
         /// </summary>
         /// <param name="contact">User</param>
         /// <param name="offset">Number of list elements to be skipped. As of Layer 15 this value is added to the one that was calculated from max_id. Negative values are also accepted.</param>
-        /// <param name="limit">Number of list elements to be returned</param>
         /// <param name="maxId">If a positive value was transferred, the method will return only messages with IDs less than max_id</param>
         /// <returns>Returns message history for a chat..</returns>
-        public async Task<ICollection<Models.Message>> GetHistory(Models.Contact contact, int offset, int limit, int maxId = -1)
+        public async Task<Models.History> GetHistoryAsync(Models.Contact contact)
         {
             await ConnectAsync();
 
+            int limit = 30;
+            Models.History history = new Models.History
+            {
+                Messages = new List<Models.Message>(),
+            };
             InputPeer peer = null;
             if (contact.IsForeign)
             {
@@ -263,19 +269,31 @@ namespace Telegram
                 peer = new InputPeerContactConstructor(contact.Id);
             }
 
-            MessagesMessages result = await _client.GetHistory(peer, offset, limit, maxId);
-            MessagesMessagesConstructor history = result.As<MessagesMessagesConstructor>();
-
-            ICollection<Models.Message> messages = new List<Models.Message>();
-            foreach (Message historyMessage in history.messages)
+            MessagesMessages result = await _client.GetHistory(peer, 0, limit);
+            if (result is MessagesMessagesConstructor messagesMessagesConstructor)
             {
-                MessageConstructor message = historyMessage.As<MessageConstructor>();
-                if (message != null)
-                {
-                    messages.Add((Models.Message)message);
-                }
+                history.Messages.AddRange(messagesMessagesConstructor.messages.Select(m => (Models.Message)m));
+                history.AddChats(messagesMessagesConstructor.chats.Select(c => (Models.Chat)c));
+                history.AddContacts(messagesMessagesConstructor.users.Select(u => (Models.Contact)u));
             }
-            return messages;
+            else if (result is MessagesMessagesSliceConstructor messagesMessagesSliceConstructor)
+            {
+                int count = messagesMessagesSliceConstructor.count;
+                int total = 0;
+                do
+                {
+                    total += limit;
+                    history.Messages.AddRange(messagesMessagesSliceConstructor.messages.Select(m => (Models.Message)m));
+                    history.AddChats(messagesMessagesSliceConstructor.chats.Select(c => (Models.Chat)c));
+                    history.AddContacts(messagesMessagesSliceConstructor.users.Select(u => (Models.Contact)u));
+                    if (total > count)
+                        break;
+                    result = await _client.GetHistory(peer, total, limit);
+                    messagesMessagesSliceConstructor = (MessagesMessagesSliceConstructor)result;
+                } while (true);
+            }
+
+            return history;
         }
 
         public async Task GetUpdatesAsync()

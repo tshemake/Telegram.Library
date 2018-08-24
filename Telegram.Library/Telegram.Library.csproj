@@ -84,6 +84,7 @@
     <Compile Include="IConfiguration.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Models\Dialog.cs" />
+    <Compile Include="Models\History.cs" />
     <Compile Include="Models\Message.cs" />
     <Compile Include="Models\MessagesDialog.cs" />
     <Compile Include="Models\SentMessage.cs" />

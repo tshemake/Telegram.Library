@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace Telegram.Models
 {
-    public class MessagesDialog : Serializable
+    public class History : Serializable
     {
-        public List<Dialog> Dialogs { get; set; }
         public List<Message> Messages { get; set; }
         private readonly List<Chat> _chats = new List<Chat>();
         public ReadOnlyCollection<Chat> Chats
