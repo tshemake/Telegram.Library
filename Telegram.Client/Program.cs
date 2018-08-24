@@ -20,10 +20,16 @@ namespace Telegram
             Do(AuthSendCodeAndSignIn, "auth.sendCode, auth.signIn");
             #endregion
             #region Список контактов
-            Do(ContactsGetContacts, "contacts.getContacts");
+            //Do(ContactsGetContacts, "contacts.getContacts");
+            //#endregion
+            //#region Поиск пользователя по имени
+            //Do(ContactsResolveUsername, "contacts.resolveUsername");
             #endregion
-            #region Поиск пользователя по имени
-            Do(ContactsResolveUsername, "contacts.resolveUsername");
+            #region Добавление в контакт
+            //Do(ContactsImportContacts, "contacts.importContacts");
+            #endregion
+            #region Удалить из контактов
+            Do(ContactsDeleteContact, "contacts.deleteContact");
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -81,6 +87,33 @@ namespace Telegram
         {
             string username = "alexandr";
             Console.WriteLine("Contact by name '{0}':\n\t{1}", username, s_client.SearchUserByUserNameAsync(username).Result);
+        }
+
+        /// <summary>
+        /// Добавить в контакт
+        /// </summary>
+        static void ContactsImportContacts()
+        {
+            string phoneNumber = "79999999999";
+            string firstName = "First name";
+            string lastName = "Last name";
+            bool successfully = s_client.ImportContactByPhoneNumber(phoneNumber, firstName, lastName).Result;
+            Console.WriteLine("Number {0} added to contact.", successfully ? "successfully" : "not");
+        }
+
+        /// <summary>
+        /// Удалить из контактов
+        /// </summary>
+        static void ContactsDeleteContact()
+        {
+            string phoneNumber = "79999999999";
+            bool successfully = false;
+            Contact contact = s_client.GetContactByPhoneNumberAsync(phoneNumber).Result;
+            if (contact != null)
+            {
+                successfully = s_client.DeleteContactAsync(contact).Result;
+            }
+            Console.WriteLine("Number {0} removed from contact.", successfully ? "successfully" : "not");
         }
     }
 }

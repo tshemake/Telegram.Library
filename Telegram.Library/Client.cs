@@ -358,6 +358,21 @@ namespace Telegram
             return (importedConacts != null && importedConacts.importedContacts.Count == 1);
         }
 
+        public async Task<bool> DeleteContactAsync(Models.Contact contact)
+        {
+            bool deleteSuccessfully = false;
+            try
+            {
+                ContactsLink contactsLink = await _client.DeleteContact(new InputUserContactConstructor(contact.Id));
+                deleteSuccessfully = true;
+            }
+            catch (TelegramReqestException ex)
+            {
+                _logger.Error($"The contact with id `{contact.Id}` can not be found in contacts", ex);
+            }
+            return deleteSuccessfully;
+        }
+
         public bool IsValidUserName(string userName) => Regex.IsMatch(userName, @"^[a-zA-Z][a-zA-Z0-9]{4,31}$");
 
         public bool IsUserAuthorized => _client.IsUserAuthorized;
