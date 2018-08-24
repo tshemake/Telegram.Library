@@ -12,36 +12,75 @@ namespace Telegram
     {
         static readonly ILogger s_logger = LoggerFactory.GetLogger<Program>();
         static Stopwatch s_stopWatch = new Stopwatch();
+        static Client s_client = null;
 
         static void Main(string[] args)
         {
-            long ticksTime = 0;
-            Client client = null;
-            var username = string.Empty;
-            var phoneNumber = string.Empty;
-            var message = string.Empty;
-            Contact contact = null;
-
-            Init(out client);
+            #region Вход
+            Do(AuthSendCodeAndSignIn, "auth.sendCode, auth.signIn");
+            #endregion
+            #region Список контактов
+            Do(ContactsGetContacts, "contacts.getContacts");
+            #endregion
+            #region Поиск пользователя по имени
+            Do(ContactsResolveUsername, "contacts.resolveUsername");
+            #endregion
 
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
-        #region Вход
-        static void Init(out Client client)
+        static void Do(Action action, string name)
         {
-            long ticksTime = 0;
-            s_stopWatch.Start();
-            client = new Client(new ConfigurationManager(), LoggerFactory.GetLogger<Client>());
-            if (!client.IsUserAuthorized)
+            long milliseconds = 0;
+            try
             {
-                client.InitializeAndAuthenticateClientAsync().Wait();
+                s_stopWatch.Start();
+                action();
+                s_stopWatch.Stop();
+                milliseconds = s_stopWatch.ElapsedMilliseconds;
+                s_stopWatch.Reset();
             }
-            s_stopWatch.Stop();
-            s_stopWatch.Reset();
-            s_logger.Info($"Authorized: {client.IsUserAuthorized}, {ticksTime} ticks.");
+            finally
+            {
+                if (s_stopWatch.IsRunning)
+                {
+                    s_stopWatch.Stop();
+                    milliseconds = s_stopWatch.ElapsedMilliseconds;
+                    s_stopWatch.Reset();
+                }
+                s_logger.Info($"{name}: {milliseconds} milliseconds.");
+            }
         }
-        #endregion
+
+        /// <summary>
+        /// Вход
+        /// </summary>
+        static void AuthSendCodeAndSignIn()
+        {
+            s_client = new Client(new ConfigurationManager(), LoggerFactory.GetLogger<Client>());
+            if (!s_client.IsUserAuthorized)
+            {
+                s_client.InitializeAndAuthenticateClientAsync().Wait();
+            }
+            Console.WriteLine($"Authorized:\n\t{s_client.IsUserAuthorized}.");
+        }
+
+        /// <summary>
+        /// Список контактов
+        /// </summary>
+        static void ContactsGetContacts()
+        {
+            Console.WriteLine("Contacts:\n\t{0}", string.Join("\n\t", s_client.GetContactsAsync().Result));
+        }
+
+        /// <summary>
+        /// Поиск пользователя по имени
+        /// </summary>
+        static void ContactsResolveUsername()
+        {
+            string username = "alexandr";
+            Console.WriteLine("Contact by name '{0}':\n\t{1}", username, s_client.SearchUserByUserNameAsync(username).Result);
+        }
     }
 }
