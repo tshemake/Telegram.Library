@@ -70,7 +70,7 @@ namespace Telegram
         {
             await ConnectAsync();
 
-            if (!IsUserAuthorized())
+            if (!IsUserAuthorized)
             {
                 Console.WriteLine($"We've sent a code with an activation code to yout phone {ConfigurationManager.PhoneNumber}.");
                 AuthSentCode codeRequest = await _client.SendCode(ConfigurationManager.PhoneNumber, VerificationCodeDeliveryType.NumericCodeViaTelegram);
@@ -254,8 +254,8 @@ namespace Telegram
             {
                 _lastInitialState = differenceUpdate.state;
                 UpdatesStateConstructor updatesStateConstructor = _lastInitialState as UpdatesStateConstructor;
-                _logger.Debug(string.Format("{0} Update.GetDifference result=[Seq={1} Date={2} Qts={3} Pts{4}]", 
-                    DateTime.Now.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture), updatesStateConstructor.seq, 
+                _logger.Debug(string.Format("{0} Update.GetDifference result=[Seq={1} Date={2} Qts={3} Pts{4}]",
+                    DateTime.Now.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture), updatesStateConstructor.seq,
                     updatesStateConstructor.date, updatesStateConstructor.qts, updatesStateConstructor.pts));
 
                 if (differenceUpdate.newMessages.Count > 0)
@@ -360,10 +360,7 @@ namespace Telegram
 
         public bool IsValidUserName(string userName) => Regex.IsMatch(userName, @"^[a-zA-Z][a-zA-Z0-9]{4,31}$");
 
-        public bool IsUserAuthorized()
-        {
-            return _client.IsUserAuthorized;
-        }
+        public bool IsUserAuthorized => _client.IsUserAuthorized;
 
         public void Dispose()
         {
