@@ -405,7 +405,7 @@ namespace Telegram
         /// <param name="firstName">First name the user assigned to himself</param>
         /// <param name="lastName">Last name the user assigned to himself</param>
         /// <returns></returns>
-        public async Task<bool> ImportContactByPhoneNumber(string phoneNumber, string firstName, string lastName)
+        public async Task<bool> ImportContactByPhoneNumberAsync(string phoneNumber, string firstName, string lastName)
         {
             string normalizedPhoneNumber = phoneNumber.TrimStart('+');
 

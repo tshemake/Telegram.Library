@@ -47,7 +47,10 @@ namespace Telegram
             //Run(MessagesGetDialogs, "messages.getDialogs");
             #endregion
             #region Читаем сообщения
-            Run(MessagesGetHistory, "messages.getHistory");
+            //Run(MessagesGetHistory, "messages.getHistory");
+            #endregion
+            #region Проверяем коррестность логина
+            Run(AccountCheckUsername, "account.checkUsername");
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -115,7 +118,7 @@ namespace Telegram
             string phoneNumber = "79999999999";
             string firstName = "First name";
             string lastName = "Last name";
-            bool successfully = s_client.ImportContactByPhoneNumber(phoneNumber, firstName, lastName).Result;
+            bool successfully = s_client.ImportContactByPhoneNumberAsync(phoneNumber, firstName, lastName).Result;
             Console.WriteLine("Number {0} added to contact.", successfully ? "successfully" : "not");
         }
 
@@ -200,6 +203,9 @@ namespace Telegram
             Console.WriteLine("Contacts:\n\t{0}", string.Join("\n\t", messagesDialog.Contacts));
         }
 
+        /// <summary>
+        /// Читаем сообщения
+        /// </summary>
         static void MessagesGetHistory()
         {
             string phoneNumber = "79870292069";
@@ -211,6 +217,15 @@ namespace Telegram
                 Console.WriteLine("Chats:\n\t{0}", string.Join("\n\t", history.Chats));
                 Console.WriteLine("Contacts:\n\t{0}", string.Join("\n\t", history.Contacts));
             }
+        }
+
+        /// <summary>
+        /// Проверяем коррестность логина
+        /// </summary>
+        static void AccountCheckUsername()
+        {
+            string username = "mmmmmmmmmm0123456789";
+            Console.WriteLine("Username '{0}' is {1}valid", username, s_client.IsAvailabilityUserNameAsync(username).Result ? "" : "not ");
         }
     }
 }
