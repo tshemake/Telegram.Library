@@ -8,7 +8,7 @@ using Telegram.Net.Core.MTProto;
 
 namespace Telegram.Net.Core.Requests
 {
-    class CheckUserNameAvailability : MtProtoRequest
+    class CheckUserNameAvailabilityRequest : MtProtoRequest
     {
         private readonly string username;
 
@@ -16,7 +16,7 @@ namespace Telegram.Net.Core.Requests
 
         protected override uint requestCode => 0x2714d86c;
 
-        public CheckUserNameAvailability(string username)
+        public CheckUserNameAvailabilityRequest(string username)
         {
             this.username = username;
         }

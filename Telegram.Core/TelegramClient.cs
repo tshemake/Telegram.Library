@@ -389,14 +389,23 @@ namespace Telegram.Net.Core
         // account.getNotifySettings#12b3ad31 peer:InputNotifyPeer = PeerNotifySettings;
         // account.resetNotifySettings#db7e1747 = Bool;
         // account.updateProfile#f0888d68 first_name:string last_name:string = User;
+
         // account.updateStatus#6628562c offline:Bool = Bool;
+        public async Task<bool> UpdateStatus(bool offline)
+        {
+            var request = new UpdateStatusRequest(offline);
+            await SendRpcRequest(request);
+
+            return request.IsUserStatusOffline;
+        }
+
         // account.getWallPapers#c04cfac2 = Vector<WallPaper>;
         // account.reportPeer#ae189d5f peer:InputPeer reason:ReportReason = Bool;
 
         // account.checkUsername#2714d86c username:string = Bool;
         public async Task<bool> CheckUsername(string username)
         {
-            var request = new CheckUserNameAvailability(username);
+            var request = new CheckUserNameAvailabilityRequest(username);
             await SendRpcRequest(request);
 
             return request.isAvailable;

@@ -200,6 +200,17 @@ namespace Telegram
             return checkPhoneResult.phoneRegistered;
         }
 
+        /// <summary>
+        /// Updates online user status.
+        /// </summary>
+        /// <param name="online">If (boolTrue) is transmitted, user status will change to (userStatusOffline).</param>
+        /// <returns>Current user status</returns>
+        public async Task<bool> UpdateUserStatusAsync(bool online)
+        {
+            await ConnectAsync();
+            return await _client.UpdateStatus(online);
+        }
+
         public async Task<bool> IsAvailabilityUserNameAsync(string userName)
         {
             string normalizedUserName = userName.TrimStart('@');

@@ -50,7 +50,10 @@ namespace Telegram
             //Run(MessagesGetHistory, "messages.getHistory");
             #endregion
             #region Проверяем коррестность логина
-            Run(AccountCheckUsername, "account.checkUsername");
+            //Run(AccountCheckUsername, "account.checkUsername");
+            #endregion
+            #region Обновляем онлайн статус
+            Run(AccountUpdateStatus, "account.updateStatus");
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -226,6 +229,15 @@ namespace Telegram
         {
             string username = "mmmmmmmmmm0123456789";
             Console.WriteLine("Username '{0}' is {1}valid", username, s_client.IsAvailabilityUserNameAsync(username).Result ? "" : "not ");
+        }
+
+        /// <summary>
+        /// Обновляем онлайн статус
+        /// </summary>
+        static void AccountUpdateStatus()
+        {
+            bool online = false;
+            Console.WriteLine("Updates online user status:\n\t{0}", s_client.UpdateUserStatusAsync(online).Result ? "online" : "offline");
         }
     }
 }
