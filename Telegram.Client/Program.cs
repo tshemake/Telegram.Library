@@ -56,7 +56,10 @@ namespace Telegram
             //Run(AccountUpdateStatus, "account.updateStatus");
             #endregion
             #region Получить статусы контактов
-            Run(ContactsGetStatuses, "contacts.getStatuses");
+            //Run(ContactsGetStatuses, "contacts.getStatuses");
+            #endregion
+            #region Выход
+            Run(AuthLogOut, "auth.logOut");
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -253,6 +256,14 @@ namespace Telegram
             {
                 Console.WriteLine("Statuses:\n\t{0}", string.Join("\n\t", contactStatuses));
             }
+        }
+
+        /// <summary>
+        /// Выход
+        /// </summary>
+        static void AuthLogOut()
+        {
+            Console.WriteLine("Log out:\n\t{0}", s_client.IsLogOutAsync().Result);
         }
     }
 }

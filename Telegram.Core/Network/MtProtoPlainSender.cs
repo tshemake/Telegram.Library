@@ -60,7 +60,8 @@ namespace Telegram.Net.Core.Network
 
         private long GetNewMessageId()
         {
-            long time = Convert.ToInt64((DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds);
+            long time = Convert.ToInt64(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds);
+
             long newMessageId = ((time / 1000 + timeOffset) << 32) |
                                 ((time % 1000) << 22) |
                                 (random.Next(524288) << 2); // 2^19

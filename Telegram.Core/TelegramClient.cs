@@ -363,6 +363,14 @@ namespace Telegram.Net.Core
 
         // TODO
         // auth.logOut#5717da40 = Bool;
+        public async Task<bool> LogOut()
+        {
+            var request = new AuthLogOutRequest();
+            await SendRpcRequest(request);
+
+            return request.IsLogOut;
+        }
+
         // auth.resetAuthorizations#9fab0d1a = Bool;
         // auth.sendInvites#771c1d97 phone_numbers:Vector<string> message:string = Bool;
         // auth.exportAuthorization#e5bfffcd dc_id:int = auth.ExportedAuthorization;

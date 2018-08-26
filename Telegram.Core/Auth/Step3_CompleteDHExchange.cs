@@ -66,7 +66,8 @@ namespace Telegram.Net.Core.Auth
                     ga = new BigInteger(1, Serializers.Bytes.Read(dhInnerDataReader));
 
                     int serverTime = dhInnerDataReader.ReadInt32();
-                    timeOffset = serverTime - (int)(Convert.ToInt64((DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds) / 1000);
+                    long time = Convert.ToInt64(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
+                    timeOffset = serverTime - (int)time;
 
                     // logger.debug("g: {0}, dhprime: {1}, ga: {2}", g, dhPrime, ga);
                 }

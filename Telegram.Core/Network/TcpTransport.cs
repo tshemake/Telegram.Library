@@ -69,28 +69,33 @@ namespace Telegram.Net.Core.Network
             if (!await ReadBuffer(stream, bodyBytes))
                 return null;
 
+            byte[] rv = new byte[packetLengthBytes.Length + seqBytes.Length + bodyBytes.Length];
+
+            Buffer.BlockCopy(packetLengthBytes, 0, rv, 0, packetLengthBytes.Length);
+            Buffer.BlockCopy(seqBytes, 0, rv, packetLengthBytes.Length, seqBytes.Length);
+            Buffer.BlockCopy(bodyBytes, 0, rv, packetLengthBytes.Length + seqBytes.Length, bodyBytes.Length);
+
             // crc
             var crcBytes = new byte[4];
             if (!await ReadBuffer(stream, crcBytes))
                 return null;
 
             int checksum = BitConverter.ToInt32(crcBytes, 0);
-
-            byte[] rv = new byte[packetLengthBytes.Length + seqBytes.Length + bodyBytes.Length];
-
-            Buffer.BlockCopy(packetLengthBytes, 0, rv, 0, packetLengthBytes.Length);
-            Buffer.BlockCopy(seqBytes, 0, rv, packetLengthBytes.Length, seqBytes.Length);
-            Buffer.BlockCopy(bodyBytes, 0, rv, packetLengthBytes.Length + seqBytes.Length, bodyBytes.Length);
-            var crc32 = new Ionic.Crc.CRC32();
-            crc32.SlurpBlock(rv, 0, rv.Length);
-            var validChecksum = crc32.Crc32Result;
-
-            if (checksum != validChecksum)
+            if (!IsValidChecksum(rv, checksum))
             {
                 throw new InvalidOperationException("invalid checksum! skip");
             }
 
             return new TcpMessage(seq, bodyBytes);
+        }
+
+        private static bool IsValidChecksum(byte[] block, int checksum)
+        {
+            var crc32 = new Ionic.Crc.CRC32();
+            crc32.SlurpBlock(block, 0, block.Length);
+            var validChecksum = crc32.Crc32Result;
+
+            return checksum == validChecksum;
         }
 
         private static async Task<bool> ReadBuffer(NetworkStream stream, byte[] buffer)

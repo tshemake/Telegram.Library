@@ -367,8 +367,21 @@ namespace Telegram
             }
         }
 
+        /// <summary>
+        /// Logs out the user.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> IsLogOutAsync()
+        {
+            await ConnectAsync();
+
+            return await _client.LogOut();
+        }
+
         public async Task<UpdatesDifference> GetUpdatesDifferenceAsync(UpdatesState state)
         {
+            await ConnectAsync();
+
             UpdatesStateConstructor updatesStateConstructor = state as UpdatesStateConstructor;
             return await _client.GetUpdatesDifference(updatesStateConstructor.pts, updatesStateConstructor.date, updatesStateConstructor.qts);
         }
@@ -392,6 +405,8 @@ namespace Telegram
             {
                 peer = new InputPeerContactConstructor(contact.Id);
             }
+
+            await ConnectAsync();
 
             return await _client.ReadHistory(peer, offset, maxId);
         }
