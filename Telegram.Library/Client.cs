@@ -208,7 +208,20 @@ namespace Telegram
         public async Task<bool> UpdateUserStatusAsync(bool online)
         {
             await ConnectAsync();
+
             return await _client.UpdateStatus(online);
+        }
+
+        /// <summary>
+        /// Get the list of contact statuses.
+        /// </summary>
+        /// <returns>Returns the list of contact statuses.</returns>
+        public async Task<ICollection<Models.ContactStatus>> GetContactStatusesAsync()
+        {
+            await ConnectAsync();
+
+            List<ContactStatus> contactStatuses = await _client.GetStatuses();
+            return contactStatuses.Select(status => (Models.ContactStatus)status).ToList();
         }
 
         public async Task<bool> IsAvailabilityUserNameAsync(string userName)

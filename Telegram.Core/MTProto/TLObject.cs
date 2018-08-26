@@ -142,7 +142,7 @@ namespace Telegram.Net.Core.MTProto
             {0x561bc879, typeof (ContactBlockedConstructor)},
             {0xea879f95, typeof (ContactFoundConstructor)},
             {0x3de191a1, typeof (ContactSuggestedConstructor)},
-            {0xaa77b873, typeof (ContactStatusConstructor)},
+            {0xd3680c61, typeof (ContactStatusConstructor)},
             {0x3631cf4c, typeof (ChatLocatedConstructor)},
             {0x133421f8, typeof (ContactsForeignLinkUnknownConstructor)},
             {0xa7801f47, typeof (ContactsForeignLinkRequestedConstructor)},
@@ -5465,17 +5465,17 @@ namespace Telegram.Net.Core.MTProto
     public class ContactStatusConstructor : ContactStatus
     {
         public int userId;
-        public int expires;
+        public UserStatus userStatus;
 
         public ContactStatusConstructor()
         {
 
         }
 
-        public ContactStatusConstructor(int userId, int expires)
+        public ContactStatusConstructor(int userId, UserStatus userStatus)
         {
             this.userId = userId;
-            this.expires = expires;
+            this.userStatus = userStatus;
         }
 
 
@@ -5483,20 +5483,20 @@ namespace Telegram.Net.Core.MTProto
 
         public override void Write(BinaryWriter writer)
         {
-            writer.Write(0xaa77b873);
+            writer.Write(0xd3680c61);
             writer.Write(userId);
-            writer.Write(expires);
+            userStatus.Write(writer);
         }
 
         public override void Read(BinaryReader reader)
         {
             userId = Serializers.Int32.Read(reader);
-            expires = Serializers.Int32.Read(reader);
+            userStatus = Read<UserStatus>(reader);
         }
 
         public override string ToString()
         {
-            return $"(contactStatus userId:{userId} expires:{expires})";
+            return $"(contactStatus userId:{userId} userStatus:{userStatus})";
         }
     }
 

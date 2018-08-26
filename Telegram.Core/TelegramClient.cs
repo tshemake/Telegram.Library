@@ -450,6 +450,13 @@ namespace Telegram.Net.Core
 
         // TODO
         // contacts.getStatuses#c4a353ee = Vector<ContactStatus>;
+        public async Task<List<ContactStatus>> GetStatuses()
+        {
+            var request = new GetContactStatusesRequest();
+            await SendRpcRequest(request);
+
+            return request.ContactStatuses;
+        }
 
         // contacts.getContacts#22c6aa08 hash:string = contacts.Contacts;
         public async Task<ContactsContacts> GetContacts(IEnumerable<int> alreadyLoadedContactsIds = null)

@@ -79,6 +79,7 @@
     <Compile Include="Requests\AuthSendSmsRequest.cs" />
     <Compile Include="Requests\AuthSignInRequest.cs" />
     <Compile Include="Requests\AuthSignUpRequest.cs" />
+    <Compile Include="Requests\GetContactStatusesRequest.cs" />
     <Compile Include="Requests\UpdateStatusRequest.cs" />
     <Compile Include="Requests\CheckUserNameAvailabilityRequest.cs" />
     <Compile Include="Requests\CreateChatRequest.cs" />

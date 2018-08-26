@@ -53,7 +53,10 @@ namespace Telegram
             //Run(AccountCheckUsername, "account.checkUsername");
             #endregion
             #region Обновляем онлайн статус
-            Run(AccountUpdateStatus, "account.updateStatus");
+            //Run(AccountUpdateStatus, "account.updateStatus");
+            #endregion
+            #region Получить статусы контактов
+            Run(ContactsGetStatuses, "contacts.getStatuses");
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -238,6 +241,18 @@ namespace Telegram
         {
             bool online = false;
             Console.WriteLine("Updates online user status:\n\t{0}", s_client.UpdateUserStatusAsync(online).Result ? "online" : "offline");
+        }
+
+        /// <summary>
+        /// Получить статусы контактов
+        /// </summary>
+        static void ContactsGetStatuses()
+        {
+            ICollection<ContactStatus> contactStatuses = s_client.GetContactStatusesAsync().Result;
+            if (contactStatuses != null)
+            {
+                Console.WriteLine("Statuses:\n\t{0}", string.Join("\n\t", contactStatuses));
+            }
         }
     }
 }
