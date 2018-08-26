@@ -118,7 +118,7 @@ namespace Telegram.Net.Core.Network
             return true;
         }
 
-        public void Dispose()
+        public void Disconnect()
         {
             try
             {
@@ -131,8 +131,37 @@ namespace Telegram.Net.Core.Network
             {
                 Debug.WriteLine($"Exception on socket dispose: {e}");
             }
-
-            tcpClient.Close();
         }
+
+        #region IDisposable Members
+
+        bool _disposed = false;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                Disconnect();
+                if (tcpClient != null)
+                    tcpClient.Close();
+            }
+
+            _disposed = true;
+        }
+
+        ~TcpTransport()
+        {
+            Dispose(false);
+        }
+        #endregion
     }
 }

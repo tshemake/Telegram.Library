@@ -479,10 +479,34 @@ namespace Telegram.Net.Core.Network
             }
         }
 
+        #region IDisposable Members
+
+        bool _disposed = false;
+
         public void Dispose()
         {
-            CleanupConnection();
-            transport.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                CleanupConnection();
+                transport.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        ~MtProtoSender()
+        {
+            Dispose(false);
+        }
+        #endregion
     }
 }
