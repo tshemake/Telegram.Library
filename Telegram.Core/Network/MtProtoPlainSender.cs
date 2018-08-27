@@ -27,7 +27,7 @@ namespace Telegram.Net.Core.Network
             {
                 using (var binaryWriter = new BinaryWriter(memoryStream))
                 {
-                    binaryWriter.Write((long)0);
+                    binaryWriter.Write(0L);
                     binaryWriter.Write(GetNewMessageId());
                     binaryWriter.Write(data.Length);
                     binaryWriter.Write(data);

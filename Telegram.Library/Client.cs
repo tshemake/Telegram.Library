@@ -83,6 +83,10 @@ namespace Telegram
             }
         }
 
+        /// <summary>
+        /// Returns the current user dialog list.
+        /// </summary>
+        /// <returns>Returns the current user dialog list.</returns>
         public async Task<Models.MessagesDialog> GetDialogsAsync()
         {
             await ConnectAsync();
@@ -122,6 +126,10 @@ namespace Telegram
             return messagesDialog;
         }
 
+        /// <summary>
+        /// Returns the current user's contact list.
+        /// </summary>
+        /// <returns>Returns the current user's contact list.</returns>
         public async Task<ICollection<Models.Contact>> GetContactsAsync()
         {
             await ConnectAsync();
@@ -454,6 +462,23 @@ namespace Telegram
             return (importedConacts != null && importedConacts.importedContacts.Count == 1);
         }
 
+        /// <summary>
+        /// Deletes several contacts from the list.
+        /// </summary>
+        /// <param name="contacts"></param>
+        /// <returns></returns>
+        public async Task<bool> DeleteContactsAsync(List<Models.Contact> contacts)
+        {
+            await ConnectAsync();
+
+            return await _client.DeleteContacts(contacts.Select(contact => new InputUserContactConstructor(contact.Id)).Cast<InputUser>().ToList());
+        }
+
+        /// <summary>
+        /// Deletes a contact from the list.
+        /// </summary>
+        /// <param name="contact"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteContactAsync(Models.Contact contact)
         {
             await ConnectAsync();

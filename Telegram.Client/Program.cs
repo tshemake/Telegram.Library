@@ -59,7 +59,10 @@ namespace Telegram
             //Run(ContactsGetStatuses, "contacts.getStatuses");
             #endregion
             #region Выход
-            Run(AuthLogOut, "auth.logOut");
+            //Run(AuthLogOut, "auth.logOut");
+            #endregion
+            #region Удалить из контактов
+            Run(ContactsDeleteContacts, "contacts.deleteContacts");
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -264,6 +267,21 @@ namespace Telegram
         static void AuthLogOut()
         {
             Console.WriteLine("Log out:\n\t{0}", s_client.IsLogOutAsync().Result);
+        }
+
+        /// <summary>
+        /// Удалить из контактов
+        /// </summary>
+        static void ContactsDeleteContacts()
+        {
+            string phoneNumber = "79999999999";
+            bool successfully = false;
+            Contact contact = s_client.GetContactByPhoneNumberAsync(phoneNumber).Result;
+            if (contact != null)
+            {
+                successfully = s_client.DeleteContactsAsync(new List<Contact> { contact }).Result;
+            }
+            Console.WriteLine("Numbers {0} removed from contact.", successfully ? "successfully" : "not");
         }
     }
 }

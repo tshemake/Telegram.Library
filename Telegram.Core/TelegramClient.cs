@@ -467,6 +467,11 @@ namespace Telegram.Net.Core
         }
 
         // contacts.getContacts#22c6aa08 hash:string = contacts.Contacts;
+        /// <summary>
+        /// Returns the current user's contact list.
+        /// </summary>
+        /// <param name="alreadyLoadedContactsIds"></param>
+        /// <returns>Returns the current user's contact list.</returns>
         public async Task<ContactsContacts> GetContacts(IEnumerable<int> alreadyLoadedContactsIds = null)
         {
             var request = new GetContactsRequest(alreadyLoadedContactsIds);
@@ -476,6 +481,14 @@ namespace Telegram.Net.Core
         }
 
         // contacts.importContacts#da30b32d contacts:Vector<InputContact> replace:Bool = contacts.ImportedContacts;
+        /// <summary>
+        /// Imports contacts: saves a full list on the server, adds already registered contacts to the contact list, returns added contacts and their info.
+        /// </summary>
+        /// <param name="phoneNumber"></param>
+        /// <param name="firstName"></param>
+        /// <param name="lastName"></param>
+        /// <param name="replace">If (boolTrue) is transmitted, the version existing on the server will be completely overwritten when the contact list is saved. Otherwise, new entries will be added to the list.</param>
+        /// <returns></returns>
         public async Task<ContactsImportedContactsConstructor> ImportContactByPhoneNumber(string phoneNumber, string firstName, string lastName, bool replace = true)
         {
             var inputContact = new InputPhoneContactConstructor(0, phoneNumber, firstName, lastName);
@@ -487,6 +500,11 @@ namespace Telegram.Net.Core
         }
 
         // contacts.deleteContact#8e953744 id:InputUser = contacts.Link;
+        /// <summary>
+        /// Deletes a contact from the list.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns>The method returns a contacts.Link object containing the new link value for this contact.</returns>
         public async Task<ContactsLink> DeleteContact(InputUser user)
         {
             var request = new DeleteContactRequest(user);
@@ -496,6 +514,19 @@ namespace Telegram.Net.Core
         }
 
         // contacts.deleteContacts#59ab389e id:Vector<InputUser> = Bool;
+        /// <summary>
+        /// Deletes several contacts from the list.
+        /// </summary>
+        /// <param name="users">User ID list</param>
+        /// <returns></returns>
+        public async Task<bool> DeleteContacts(List<InputUser> users)
+        {
+            var request = new DeleteContactsRequest(users);
+            await SendRpcRequest(request);
+
+            return request.Done;
+        }
+
         // contacts.block#332b49fc id:InputUser = Bool;
         // contacts.unblock#e54100bd id:InputUser = Bool;
         // contacts.getBlocked#f57c350f offset:int limit:int = contacts.Blocked;
@@ -518,6 +549,13 @@ namespace Telegram.Net.Core
         // messages.getMessages#4222fa74 id:Vector<int> = messages.Messages;
 
         // messages.getDialogs#eccf1df6 offset:int max_id:int limit:int = messages.Dialogs;
+        /// <summary>
+        /// Returns the current user dialog list.
+        /// </summary>
+        /// <param name="offset">Number of list elements to be skipped</param>
+        /// <param name="limit">Number of list elements to be returned</param>
+        /// <param name="maxId">If a positive value was transmitted sent, the method will return only dialogs with IDs less than the set one</param>
+        /// <returns></returns>
         public async Task<MessagesDialogs> GetDialogs(int offset, int limit, int maxId = 0)
         {
             var request = new GetDialogsRequest(offset, maxId, limit);
