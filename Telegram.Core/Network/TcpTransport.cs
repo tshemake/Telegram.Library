@@ -128,6 +128,7 @@ namespace Telegram.Net.Core.Network
                         catch (Exception ex)
                         {
                             Debug.WriteLine("Failed to send confim message", ex);
+                            throw;
                         }
                         finally
                         {
@@ -153,11 +154,11 @@ namespace Telegram.Net.Core.Network
                     await SendMessage(message).ConfigureAwait(false);
                     message.TaskCompletionSource.SetResult(true);
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Debug.WriteLine("Failed to process the message", e);
+                    Debug.WriteLine("Sending confirmation for messages failed", ex);
 
-                    message.TaskCompletionSource.SetException(e);
+                    message.TaskCompletionSource.SetException(ex);
                 }
             }
         }
@@ -166,7 +167,7 @@ namespace Telegram.Net.Core.Network
         {
             var mesSeqNo = _messageSequenceNumber++;
 
-            Debug.Write($"Sending message with seq_no {mesSeqNo}");
+            Debug.WriteLine($"Sending message with seq_no {mesSeqNo}");
 
             var encodedMessage = tcpMessage.Encode();
 
