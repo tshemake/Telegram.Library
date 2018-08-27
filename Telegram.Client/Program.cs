@@ -62,7 +62,10 @@ namespace Telegram
             //Run(AuthLogOut, "auth.logOut");
             #endregion
             #region Удалить из контактов
-            Run(ContactsDeleteContacts, "contacts.deleteContacts");
+            //Run(ContactsDeleteContacts, "contacts.deleteContacts");
+            #endregion
+            #region Закрытие всех сессий кроме текущей
+            Run(AuthResetAuthorizations, "auth.resetAuthorizations");
             #endregion
 
             Console.WriteLine("Press any key to exit...");
@@ -282,6 +285,14 @@ namespace Telegram
                 successfully = s_client.DeleteContactsAsync(new List<Contact> { contact }).Result;
             }
             Console.WriteLine("Numbers {0} removed from contact.", successfully ? "successfully" : "not");
+        }
+
+        /// <summary>
+        /// Закрытие всех сессий кроме текущей
+        /// </summary>
+        static void AuthResetAuthorizations()
+        {
+            Console.WriteLine("Terminate all other sessions:\n\t{0}", s_client.ResetAuthorizationAsync().Result);
         }
     }
 }

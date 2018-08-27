@@ -8,6 +8,9 @@ namespace Telegram.Net.Core.Requests
     {
         public readonly InputPeer peer;
         public readonly string message;
+        /// <summary>
+        /// Unique client message ID required to prevent message resending
+        /// </summary>
         public readonly long randomId;
 
         public SentMessage sentMessage { get; private set; }

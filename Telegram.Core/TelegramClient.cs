@@ -34,32 +34,32 @@ namespace Telegram.Net.Core
 
     public class TelegramClient : IDisposable
     {
-        private static int apiLayer = 23;
-        private static int connectionReinitializationTimeoutSeconds = 8;
+        private static readonly int s_apiLayer = 23;
+        private static readonly int s_connectionReinitializationTimeoutSeconds = 8;
 
 #if DEBUG
-        private static readonly string defaultMTProtoServerAddress = "149.154.167.40";
-        private static readonly int defaultMTProtoServerPort = 443;
+        private static readonly string s_defaultMTProtoServerAddress = "149.154.167.40";
+        private static readonly int s_defaultMTProtoServerPort = 443;
 #else
-        private static readonly string defaultMTProtoServerAddress = "149.154.167.50";
-        private static readonly int defaultMTProtoServerPort = 443;
+        private static readonly string s_defaultMTProtoServerAddress = "149.154.167.50";
+        private static readonly int s_defaultMTProtoServerPort = 443;
 #endif
 
-        private MtProtoSender protoSender;
+        private MtProtoSender _protoSender;
 
-        private readonly IDeviceInfoService deviceInfo;
+        private readonly IDeviceInfoService _deviceInfo;
 
-        private readonly string apiHash;
-        private readonly int apiId;
-        private readonly Session session;
+        private readonly string _apiHash;
+        private readonly int _apiId;
+        private readonly Session _session;
 
         public bool IsConnected { get; set; }
-        private bool isClosed;
+        private bool _isClosed;
 
-        private ConfigConstructor configuration;
-        private DcOptionsCollection dcOptions;
+        private ConfigConstructor _configuration;
+        private DcOptionsCollection _dcOptions;
 
-        public UserSelfConstructor authenticatedUser => session.user.As<UserSelfConstructor>();
+        public UserSelfConstructor AuthenticatedUser => _session.user.As<UserSelfConstructor>();
 
         public event EventHandler<ConnectionStateEventArgs> ConnectionStateChanged;
         public event EventHandler<Updates> UpdateMessage;
@@ -73,14 +73,14 @@ namespace Telegram.Net.Core
             if (string.IsNullOrEmpty(apiHash))
                 throw new ArgumentException("API_HASH is invalid", nameof(apiHash));
 
-            this.apiHash = apiHash;
-            this.apiId = apiId;
-            this.deviceInfo = deviceInfo;
+            this._apiHash = apiHash;
+            this._apiId = apiId;
+            this._deviceInfo = deviceInfo;
 
-            serverAddress = string.IsNullOrWhiteSpace(serverAddress) ? defaultMTProtoServerAddress : serverAddress;
-            serverPort = serverPort == 0 ? defaultMTProtoServerPort : serverPort;
+            serverAddress = string.IsNullOrWhiteSpace(serverAddress) ? s_defaultMTProtoServerAddress : serverAddress;
+            serverPort = serverPort == 0 ? s_defaultMTProtoServerPort : serverPort;
 
-            session = Session.TryLoadOrCreateNew(serverAddress, serverPort, store);
+            _session = Session.TryLoadOrCreateNew(serverAddress, serverPort, store);
         }
 
         public async Task<bool> Start()
@@ -98,10 +98,10 @@ namespace Telegram.Net.Core
         }
         public async Task SendRpcRequest(MtProtoRequest request, bool throwOnError = true)
         {
-            if (isClosed)
+            if (_isClosed)
                 throw new ObjectDisposedException("TelegramClient is closed");
 
-            await protoSender.Send(request);
+            await _protoSender.Send(request);
 
             // handle errors that can be fixed without user interaction
             if (request.Error == RpcRequestError.IncorrectServerSalt)
@@ -110,27 +110,27 @@ namespace Telegram.Net.Core
                 Debug.WriteLine("IncorrectServerSalt. Resolving by resending message");
 
                 request.ResetError();
-                await protoSender.Send(request);
+                await _protoSender.Send(request);
             }
 
             if (request.Error == RpcRequestError.MessageSeqNoTooLow)
             {
                 Debug.WriteLine("MessageSeqNoTooLow. Resoliving by resetting session and resending message");
-                session.Reset();
+                _session.Reset();
 
                 request.ResetError();
-                await protoSender.Send(request);
+                await _protoSender.Send(request);
             }
 
             if (request.Error == RpcRequestError.Unauthorized)
             {
                 Debug.WriteLine("Invalid authorization");
 
-                session.ResetAuth();
+                _session.ResetAuth();
                 OnAuthenticationCanceled();
             }
 
-            session.Save();
+            _session.Save();
 
             // escalate
             if (throwOnError)
@@ -141,10 +141,10 @@ namespace Telegram.Net.Core
 
         private void OnUserAuthenticated(User user, int sessionExpiration)
         {
-            session.user = user;
-            session.sessionExpires = sessionExpiration;
+            _session.user = user;
+            _session.sessionExpires = sessionExpiration;
 
-            session.Save();
+            _session.Save();
         }
         private void OnProtoSenderBroken(object sender, EventArgs e)
         {
@@ -156,31 +156,31 @@ namespace Telegram.Net.Core
             await CloseProto();
 
             Debug.WriteLine("Creating new transport..");
-            if (session.authKey == null)
+            if (_session.authKey == null)
             {
-                Step3_Response result = await Authenticator.Authenticate(session.serverAddress, session.port);
+                Step3_Response result = await Authenticator.Authenticate(_session.serverAddress, _session.port);
 
-                session.authKey = result.authKey;
-                session.timeOffset = result.timeOffset;
-                session.salt = result.serverSalt;
+                _session.authKey = result.authKey;
+                _session.timeOffset = result.timeOffset;
+                _session.salt = result.serverSalt;
             }
 
-            protoSender = new MtProtoSender(session);
+            _protoSender = new MtProtoSender(_session);
 
             Subscribe();
-            protoSender.Start();
+            _protoSender.Start();
 
-            var request = new InitConnectionAndGetConfigRequest(apiLayer, apiId, deviceInfo);
+            var request = new InitConnectionAndGetConfigRequest(s_apiLayer, _apiId, _deviceInfo);
             await SendRpcRequest(request);
 
-            configuration = request.config;
-            dcOptions = new DcOptionsCollection(request.config.dcOptions);
+            _configuration = request.config;
+            _dcOptions = new DcOptionsCollection(request.config.dcOptions);
 
             OnConnectionStateChanged(ConnectionStateEventArgs.Connected());
         }
         private async Task StartReconnecting()
         {
-            while (!isClosed)
+            while (!_isClosed)
             {
                 try
                 {
@@ -189,13 +189,13 @@ namespace Telegram.Net.Core
                 }
                 catch (Exception ex)
                 {
-                    protoSender?.Dispose();
+                    _protoSender?.Dispose();
 
                     Debug.WriteLine($"Failed to initialize connection: {ex.Message}");
-                    Debug.WriteLine($"Retrying in {connectionReinitializationTimeoutSeconds} seconds..");
+                    Debug.WriteLine($"Retrying in {s_connectionReinitializationTimeoutSeconds} seconds..");
 
-                    OnConnectionStateChanged(ConnectionStateEventArgs.Disconnected(connectionReinitializationTimeoutSeconds));
-                    await Task.Delay(TimeSpan.FromSeconds(connectionReinitializationTimeoutSeconds));
+                    OnConnectionStateChanged(ConnectionStateEventArgs.Disconnected(s_connectionReinitializationTimeoutSeconds));
+                    await Task.Delay(TimeSpan.FromSeconds(s_connectionReinitializationTimeoutSeconds));
                 }
             }
         }
@@ -204,15 +204,15 @@ namespace Telegram.Net.Core
         {
             Unsubscribe();
 
-            protoSender.Broken += OnProtoSenderBroken;
-            protoSender.UpdateMessage += OnUpdateMessage;
+            _protoSender.Broken += OnProtoSenderBroken;
+            _protoSender.UpdateMessage += OnUpdateMessage;
         }
         private void Unsubscribe()
         {
-            if (protoSender != null)
+            if (_protoSender != null)
             {
-                protoSender.Broken -= OnProtoSenderBroken;
-                protoSender.UpdateMessage -= OnUpdateMessage;
+                _protoSender.Broken -= OnProtoSenderBroken;
+                _protoSender.UpdateMessage -= OnUpdateMessage;
             }
         }
 
@@ -230,7 +230,7 @@ namespace Telegram.Net.Core
 
             var proto = new MtProtoSender(protoSession, true);
 
-            var initRequest = new InitConnectionAndGetConfigRequest(apiLayer, apiId, deviceInfo);
+            var initRequest = new InitConnectionAndGetConfigRequest(s_apiLayer, _apiId, _deviceInfo);
             await proto.Send(initRequest);
 
             return proto;
@@ -238,18 +238,18 @@ namespace Telegram.Net.Core
 
         private async Task SendRpcRequestInSeparateSession(int dcId, MtProtoRequest request)
         {
-            var dc = dcOptions.GetDc(dcId);
+            var dc = _dcOptions.GetDc(dcId);
             var newSession = Session.TryLoadOrCreateNew(dc.ipAddress, dc.port);
-            if (dcId == configuration.thisDc) // same dc
+            if (dcId == _configuration.thisDc) // same dc
             {
-                newSession.authKey = session.authKey;
-                newSession.salt = session.salt;
-                newSession.timeOffset = session.timeOffset;
+                newSession.authKey = _session.authKey;
+                newSession.salt = _session.salt;
+                newSession.timeOffset = _session.timeOffset;
             }
 
             using (var proto = await CreateProto(newSession))
             {
-                if (dcId != configuration.thisDc)
+                if (dcId != _configuration.thisDc)
                 {
                     var exportAuthRequest = new AuthExportAuthorizationRequest(dcId);
                     await SendRpcRequest(exportAuthRequest);
@@ -266,9 +266,14 @@ namespace Telegram.Net.Core
 
         #region Auth
 
-        public bool IsUserAuthorized { get => session.user != null; }
+        public bool IsUserAuthorized { get => _session.user != null; }
 
         //auth.checkPhone#6fe51dfb phone_number:string = auth.CheckedPhone;
+        /// <summary>
+        /// Returns information on whether the passed phone number was registered.
+        /// </summary>
+        /// <param name="phoneNumber">Phone number in the international format</param>
+        /// <returns>The method returns an auth.CheckedPhone type object with information on whether an account with such a phone number has already been registered, as well as whether invitations were sent to this number (using the auth.sendInvites method).</returns>
         public async Task<AuthCheckedPhoneConstructor> CheckPhone(string phoneNumber)
         {
             var authCheckPhoneRequest = new AuthCheckPhoneRequest(phoneNumber);
@@ -279,9 +284,19 @@ namespace Telegram.Net.Core
         }
 
         //auth.sendCode#768d5f4d phone_number:string sms_type:int api_id:int api_hash:string lang_code:string = auth.SentCode;
-        public async Task<AuthSentCode> SendCode(string phoneNumber, VerificationCodeDeliveryType tokenDestination)
+        /// <summary>
+        /// Sends an confirmation code message to the specified phone number via SMS.
+        /// </summary>
+        /// <param name="phoneNumber">Phone number in international format</param>
+        /// <param name="tokenDestination">Message text type. Possible values:
+        /// 0 - message contains a numerical code
+        /// 1 (deprecated) - message contains a link { app_name }://{code}
+        /// 5 - message sent via Telegram instead of SMS(the (auth.sentAppCode) constructor may be returned in this case)</param>
+        /// <param name="langCode">Code for the language used on a client, ISO 639-1 standard.  Parameter added in layer 5.</param>
+        /// <returns>The method returns an auth.SentCode object with information on the message sent.</returns>
+        public async Task<AuthSentCode> SendCode(string phoneNumber, VerificationCodeDeliveryType tokenDestination, string langCode = "en")
         {
-            var request = new AuthSendCodeRequest(phoneNumber, (int)tokenDestination, apiId, apiHash, "en");
+            var request = new AuthSendCodeRequest(phoneNumber, (int)tokenDestination, _apiId, _apiHash, langCode);
             await SendRpcRequest(request, false);
 
             if (request.Error == RpcRequestError.MigrateDataCenter)
@@ -299,11 +314,11 @@ namespace Telegram.Net.Core
                     await CloseProto();
 
                     // set new dc options
-                    var dcOpt = dcOptions.GetDc(dcId);
+                    var dcOpt = _dcOptions.GetDc(dcId);
 
-                    session.authKey = null;
-                    session.serverAddress = dcOpt.ipAddress;
-                    session.port = dcOpt.port;
+                    _session.authKey = null;
+                    _session.serverAddress = dcOpt.ipAddress;
+                    _session.port = dcOpt.port;
 
                     try
                     {
@@ -327,6 +342,12 @@ namespace Telegram.Net.Core
         }
 
         //auth.sendCall#3c51564 phone_number:string phone_code_hash:string = Bool;
+        /// <summary>
+        /// Makes a voice call to the passed phone number. A robot will repeat the confirmation code from a previously sent SMS message.
+        /// </summary>
+        /// <param name="phoneNumber">Phone number in the international format</param>
+        /// <param name="phoneCodeHash">SMS-message ID</param>
+        /// <returns></returns>
         public async Task<bool> SendCall(string phoneNumber, string phoneCodeHash)
         {
             var request = new AuthSendCallRequest(phoneNumber, phoneCodeHash);
@@ -336,9 +357,18 @@ namespace Telegram.Net.Core
         }
 
         //auth.signUp#1b067634 phone_number:string phone_code_hash:string phone_code:string first_name:string last_name:string = auth.Authorization;
-        public async Task<AuthAuthorizationConstructor> SignUp(string phoneNumber, string phoneCodeHash, string code, string firstName, string lastName)
+        /// <summary>
+        /// Registers a validated phone number in the system.
+        /// </summary>
+        /// <param name="phoneNumber">Phone number in the international format</param>
+        /// <param name="phoneCodeHash">SMS-message ID</param>
+        /// <param name="phoneCode">Valid numerical code from the SMS-message</param>
+        /// <param name="firstName">New user first name</param>
+        /// <param name="lastName">New user last name</param>
+        /// <returns>Returns an auth.Authorization object with information about the new authorization.</returns>
+        public async Task<AuthAuthorizationConstructor> SignUp(string phoneNumber, string phoneCodeHash, string phoneCode, string firstName, string lastName)
         {
-            var request = new AuthSignUpRequest(phoneNumber, phoneCodeHash, code, firstName, lastName);
+            var request = new AuthSignUpRequest(phoneNumber, phoneCodeHash, phoneCode, firstName, lastName);
             await SendRpcRequest(request);
 
             // only single implementation available
@@ -349,6 +379,13 @@ namespace Telegram.Net.Core
         }
 
         //auth.signIn#bcd51581 phone_number:string phone_code_hash:string phone_code:string = auth.Authorization;
+        /// <summary>
+        /// Signs in a user with a validated phone number.
+        /// </summary>
+        /// <param name="phoneNumber">Phone number in the international format</param>
+        /// <param name="phoneCodeHash">SMS-message ID</param>
+        /// <param name="code">Valid numerical code from the SMS-message</param>
+        /// <returns>Returns an auth.Authorization object with information on the new authorization.</returns>
         public async Task<AuthAuthorizationConstructor> SignIn(string phoneNumber, string phoneCodeHash, string code)
         {
             var request = new AuthSignInRequest(phoneNumber, phoneCodeHash, code);
@@ -361,8 +398,11 @@ namespace Telegram.Net.Core
             return authorization;
         }
 
-        // TODO
         // auth.logOut#5717da40 = Bool;
+        /// <summary>
+        /// Logs out the user.
+        /// </summary>
+        /// <returns></returns>
         public async Task<bool> LogOut()
         {
             var request = new AuthLogOutRequest();
@@ -372,12 +412,30 @@ namespace Telegram.Net.Core
         }
 
         // auth.resetAuthorizations#9fab0d1a = Bool;
+        /// <summary>
+        /// Terminates all user's authorized sessions except for the current one. After calling this method it is necessary to reregister the current device using the method account.registerDevice
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> ResetAuthorization()
+        {
+            var request = new AuthResetAuthorizationRequest();
+            await SendRpcRequest(request);
+
+            return request.IsDone;
+        }
+
         // auth.sendInvites#771c1d97 phone_numbers:Vector<string> message:string = Bool;
         // auth.exportAuthorization#e5bfffcd dc_id:int = auth.ExportedAuthorization;
         // auth.importAuthorization#e3ef9613 id:int bytes:bytes = auth.Authorization;
         // auth.bindTempAuthKey#cdd42a05 perm_auth_key_id:long nonce:long expires_at:int encrypted_message:bytes = Bool;
 
         //auth.sendSms#da9f3e8 phone_number:string phone_code_hash:string = Bool;
+        /// <summary>
+        /// Forces sending an SMS message to the specified phone number. Use this method if auth.sentAppCode was returned as a response to auth.sendCode, but the user can't reach the device with Telegram.
+        /// </summary>
+        /// <param name="phoneNumber">Phone number in international format</param>
+        /// <param name="phoneCodeHash">SMS-message ID</param>
+        /// <returns></returns>
         public async Task<bool> SendSms(string phoneNumber, string phoneCodeHash)
         {
             var request = new AuthSendSmsRequest(phoneNumber, phoneCodeHash);
@@ -399,6 +457,11 @@ namespace Telegram.Net.Core
         // account.updateProfile#f0888d68 first_name:string last_name:string = User;
 
         // account.updateStatus#6628562c offline:Bool = Bool;
+        /// <summary>
+        /// Updates online user status.
+        /// </summary>
+        /// <param name="offline">If (boolTrue) is transmitted, user status will change to (userStatusOffline).</param>
+        /// <returns></returns>
         public async Task<bool> UpdateStatus(bool offline)
         {
             var request = new UpdateStatusRequest(offline);
@@ -411,6 +474,11 @@ namespace Telegram.Net.Core
         // account.reportPeer#ae189d5f peer:InputPeer reason:ReportReason = Bool;
 
         // account.checkUsername#2714d86c username:string = Bool;
+        /// <summary>
+        /// Validates a username and checks availability.
+        /// </summary>
+        /// <param name="username">username. Accepted characters: A-z(case-insensitive), 0-9 and underscores. Length: 5-32 characters.</param>
+        /// <returns>Return Bool result on whether the passed username can be used.</returns>
         public async Task<bool> CheckUsername(string username)
         {
             var request = new CheckUserNameAvailabilityRequest(username);
@@ -434,6 +502,11 @@ namespace Telegram.Net.Core
         #region Users
 
         // users.getUsers#d91a548 id:Vector<InputUser> = Vector<User>;
+        /// <summary>
+        /// Returns basic user info according to their identifiers.
+        /// </summary>
+        /// <param name="ids">List of user identifiers</param>
+        /// <returns>Returns basic user info according to their identifiers.</returns>
         public async Task<List<User>> GetUsers(List<InputUser> ids)
         {
             var request = new GetUsersRequest(ids);
@@ -443,6 +516,11 @@ namespace Telegram.Net.Core
         }
 
         // users.getFullUser#ca30a5b1 id:InputUser = UserFull;
+        /// <summary>
+        /// Returns extended user info by ID.
+        /// </summary>
+        /// <param name="user">User ID</param>
+        /// <returns>Returns extended user info by ID.</returns>
         public async Task<UserFullConstructor> GetFullUser(InputUser user)
         {
             var request = new GetFullUserRequest(user);
@@ -534,6 +612,7 @@ namespace Telegram.Net.Core
         // contacts.importCard#4fe196fe export_card:Vector<int> = User;
         // contacts.search#11f812d8 q:string limit:int = contacts.Found;
 
+        // contacts.resolveUsername#bf0131c username:string = User;
         public async Task<User> ResolveUsername(string username)
         {
             var request = new ResolveUsernameRequest(username);
@@ -565,6 +644,14 @@ namespace Telegram.Net.Core
         }
 
         // messages.getHistory#92a1df2f peer:InputPeer offset:int max_id:int limit:int = messages.Messages;
+        /// <summary>
+        /// Returns message history for a chat.
+        /// </summary>
+        /// <param name="inputPeer">Target user or group</param>
+        /// <param name="offset">Number of list elements to be skipped. As of Layer 15 this value is added to the one that was calculated from max_id.Negative values are also accepted.</param>
+        /// <param name="limit">Number of list elements to be returned</param>
+        /// <param name="maxId">If a positive value was transferred, the method will return only messages with IDs less than max_id</param>
+        /// <returns>Returns message history for a chat.</returns>
         public async Task<MessagesMessages> GetHistory(InputPeer inputPeer, int offset, int limit, int maxId = -1)
         {
             var request = new GetHistoryRequest(inputPeer, offset, maxId, limit);
@@ -589,6 +676,14 @@ namespace Telegram.Net.Core
         // messages.search#7e9f2ab peer:InputPeer q:string filter:MessagesFilter min_date:int max_date:int offset:int max_id:int limit:int = messages.Messages;
 
         // messages.readHistory#eed884c6 peer:InputPeer max_id:int offset:int read_contents:Bool = messages.AffectedHistory;
+        /// <summary>
+        /// Marks message history as read.
+        /// </summary>
+        /// <param name="inputPeer">Target user or group</param>
+        /// <param name="offset">Value from (messages.affectedHistory) or 0</param>
+        /// <param name="maxId">If a positive value is passed, only messages with identifiers less or equal than the given one will be read</param>
+        /// <param name="readContents">(boolTrue) if the client doesn't support the new read status for multimedia. Parameter added in Layer 17.</param>
+        /// <returns></returns>
         public async Task<MessagesAffectedHistory> ReadHistory(InputPeer inputPeer, int offset, int maxId = -1, bool readContents = true)
         {
             var request = new MarkHistoryAsReadRequest(inputPeer, offset, maxId, readContents);
@@ -600,6 +695,11 @@ namespace Telegram.Net.Core
         // messages.deleteHistory#f4f8fb61 peer:InputPeer offset:int = messages.AffectedHistory;
 
         // messages.deleteMessages#14f2dd0a id:Vector<int> = Vector<int>;
+        /// <summary>
+        /// Deletes messages by their identifiers.
+        /// </summary>
+        /// <param name="messageIdsToDelete">Message ID list</param>
+        /// <returns>The method returns the list of successfully deleted messages in Vector<int>.</returns>
         public async Task<List<int>> DeleteMessages(List<int> messageIdsToDelete)
         {
             var request = new DeleteMessagesRequest(messageIdsToDelete);
@@ -609,6 +709,11 @@ namespace Telegram.Net.Core
         }
 
         // messages.receivedMessages#28abcb68 max_id:int = Vector<int>;
+        /// <summary>
+        /// Confirms receipt of messages by a client, cancels PUSH-notification sending.
+        /// </summary>
+        /// <param name="maxId">Maximum message ID available in a client.</param>
+        /// <returns>The method returns the list of message IDs, for which PUSH-notifications in Vector<int> were cancelled.</returns>
         public async Task<List<int>> ReceivedMessages(int maxId)
         {
             var request = new ReceivedMessagesRequest(maxId);
@@ -618,6 +723,12 @@ namespace Telegram.Net.Core
         }
 
         // messages.setTyping#a3825e50 peer:InputPeer action:SendMessageAction = Bool;
+        /// <summary>
+        /// Sends a current user typing event (see SendMessageAction for all event types) to a conversation partner or group.
+        /// </summary>
+        /// <param name="inputPeer">Target user or group</param>
+        /// <param name="action">Type of action. Parameter added in Layer 17.</param>
+        /// <returns></returns>
         public async Task<bool> SetTyping(InputPeer inputPeer, SendMessageAction action)
         {
             var request = new SetTypingRequest(inputPeer, action);
@@ -627,6 +738,12 @@ namespace Telegram.Net.Core
         }
 
         // messages.sendMessage#4cde0aab peer:InputPeer message:string random_id:long = messages.SentMessage;
+        /// <summary>
+        /// Sends a text message.
+        /// </summary>
+        /// <param name="inputPeer">User or chat where a message will be sent</param>
+        /// <param name="message">Message text</param>
+        /// <returns></returns>
         public async Task<SentMessage> SendMessage(InputPeer inputPeer, string message)
         {
             var request = new SendMessageRequest(inputPeer, message);
@@ -657,6 +774,12 @@ namespace Telegram.Net.Core
         }
 
         // messages.sendMedia#a3c85d76 peer:InputPeer media:InputMedia random_id:long = messages.StatedMessage;
+        /// <summary>
+        /// Sends a non-text message.
+        /// </summary>
+        /// <param name="inputPeer">User or group to receive the message</param>
+        /// <param name="media">Message contents</param>
+        /// <returns></returns>
         public async Task<MessagesStatedMessage> SendMediaMessage(InputPeer inputPeer, InputMedia media)
         {
             var request = new SendMediaRequest(inputPeer, media);
@@ -673,6 +796,11 @@ namespace Telegram.Net.Core
         // messages.getChats#3c6aa187 id:Vector<int> = messages.Chats;
 
         // messages.getFullChat#3b831c66 chat_id:int = messages.ChatFull;
+        /// <summary>
+        /// Returns full chat info according to its ID.
+        /// </summary>
+        /// <param name="chatId">Chat ID</param>
+        /// <returns>Returns full chat info according to its ID.</returns>
         public async Task<ChatFull> GetFullChat(int chatId)
         {
             var request = new GetFullChatRequest(chatId);
@@ -685,6 +813,13 @@ namespace Telegram.Net.Core
         // messages.editChatPhoto#d881821d chat_id:int photo:InputChatPhoto = messages.StatedMessage;
 
         // messages.addChatUser#2ee9ee9e chat_id:int user_id:InputUser fwd_limit:int = messages.StatedMessage;
+        /// <summary>
+        /// Adds a user to a chat and sends a service message on it.
+        /// </summary>
+        /// <param name="chatId">Chat ID</param>
+        /// <param name="user">User ID to be added</param>
+        /// <param name="messagesToForward">Number of last messages to be forwarded</param>
+        /// <returns></returns>
         public async Task<MessagesStatedMessage> AddChatUser(int chatId, InputUser user, int messagesToForward)
         {
             var request = new AddChatUserRequest(chatId, user, messagesToForward);
@@ -694,6 +829,12 @@ namespace Telegram.Net.Core
         }
 
         // messages.deleteChatUser#c3c5cd23 chat_id:int user_id:InputUser = messages.StatedMessage;
+        /// <summary>
+        /// Deletes a user from a chat and sends a service message on it.
+        /// </summary>
+        /// <param name="chatId">Chat ID</param>
+        /// <param name="userToDelete">User ID to be deleted</param>
+        /// <returns>Returns a messages.StatedMessage object containing a service message sent during the action.</returns>
         public async Task<MessagesStatedMessage> DeleteChatUser(int chatId, InputUser userToDelete)
         {
             var request = new DeleteChatUserRequest(chatId, userToDelete);
@@ -703,13 +844,19 @@ namespace Telegram.Net.Core
         }
         public async Task<MessagesStatedMessage> LeaveChat(int chatId)
         {
-            var request = new DeleteChatUserRequest(chatId, new InputUserContactConstructor(authenticatedUser.id));
+            var request = new DeleteChatUserRequest(chatId, new InputUserContactConstructor(AuthenticatedUser.id));
             await SendRpcRequest(request);
 
             return request.statedMessage;
         }
 
         // messages.createChat#419d9aee users:Vector<InputUser> title:string = messages.StatedMessage;
+        /// <summary>
+        /// Creates a new chat.
+        /// </summary>
+        /// <param name="title">List of user IDs to be invited</param>
+        /// <param name="usersToInvite">Chat name</param>
+        /// <returns>Returns a messages.StatedMessage object containing a service message sent sent during an action.</returns>
         public async Task<MessagesStatedMessage> CreateChat(string title, List<InputUser> usersToInvite)
         {
             var request = new CreateChatRequest(usersToInvite, title);
@@ -746,6 +893,10 @@ namespace Telegram.Net.Core
         }
 
         // updates.getState#edd4882a = updates.State;
+        /// <summary>
+        /// Returns a current state of updates.
+        /// </summary>
+        /// <returns></returns>
         public async Task<UpdatesStateConstructor> GetUpdatesState()
         {
             var request = new GetUpdatesStateRequest();
@@ -756,6 +907,13 @@ namespace Telegram.Net.Core
         }
 
         // updates.getDifference#a041495 pts:int date:int qts:int = updates.Difference;
+        /// <summary>
+        /// Returns diffetence between the current state of updates and transmitted.
+        /// </summary>
+        /// <param name="pts">The most relevant value of parameter pts of (updates.state), (updateNewMessage), (updateReadMessages), (updateDeleteMessages) или (updateRestoreMessages)</param>
+        /// <param name="date">The most relevant value of parameter date of (updates.state), (updateShort) или (updates)</param>
+        /// <param name="qts">The most relevant value of parameter qts of (updates.state), (updateNewEncryptedMessage) -1 if end-to-end encryption is not supported. Parameter was added in eigth layer.</param>
+        /// <returns></returns>
         public async Task<UpdatesDifference> GetUpdatesDifference(int pts, int date, int qts)
         {
             var request = new GetUpdatesDifferenceRequest(pts, date, qts);
@@ -779,6 +937,13 @@ namespace Telegram.Net.Core
         #region Upload
 
         // upload.saveFilePart#b304a621 file_id:long file_part:int bytes:bytes = Bool;
+        /// <summary>
+        /// Saves a part of file for futher sending to one of the methods.
+        /// </summary>
+        /// <param name="fileId">Random file identifier created by the client</param>
+        /// <param name="filePart">Numerical order of a part</param>
+        /// <param name="bytes">Binary data, contend of a part</param>
+        /// <returns></returns>
         public async Task<bool> SaveFilePart(long fileId, int filePart, byte[] bytes)
         {
             var request = new SaveFilePartRequest(fileId, filePart, bytes, 0, bytes.Length);
@@ -825,6 +990,13 @@ namespace Telegram.Net.Core
         }
 
         // upload.getFile#e3a6cfb5 location:InputFileLocation offset:int limit:int = upload.File;
+        /// <summary>
+        /// Returns content of a whole file or its part.
+        /// </summary>
+        /// <param name="fileLocation">File location</param>
+        /// <param name="offset">Number of bytes to be skipped</param>
+        /// <param name="limit">Number of bytes to be returned</param>
+        /// <returns>Returns content of a whole file or its part.</returns>
         public async Task<UploadFileConstructor> GetFile(FileLocationConstructor fileLocation, int offset, int limit)
         {
             var request = new GetFileRequest(new InputFileLocationConstructor(fileLocation.volumeId, fileLocation.localId, fileLocation.secret), offset, limit);
@@ -876,24 +1048,24 @@ namespace Telegram.Net.Core
         private async Task CloseProto()
         {
             DisposeProto();
-            if (protoSender != null)
-                await protoSender.finishedListeningTask;
+            if (_protoSender != null)
+                await _protoSender.finishedListeningTask;
         }
 
         private void DisposeProto()
         {
-            if (protoSender != null)
+            if (_protoSender != null)
             {
                 Debug.WriteLine("Closing current transport");
 
                 Unsubscribe();
-                protoSender.Dispose();
+                _protoSender.Dispose();
             }
         }
 
         public void Dispose()
         {
-            isClosed = true;
+            _isClosed = true;
             DisposeProto();
         }
     }

@@ -232,6 +232,29 @@ namespace Telegram
             return contactStatuses.Select(status => (Models.ContactStatus)status).ToList();
         }
 
+        /// <summary>
+        /// Terminates all user's authorized sessions except for the current one. After calling this method it is necessary to reregister the current device using the method account.registerDevice
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> ResetAuthorizationAsync()
+        {
+            await ConnectAsync();
+
+            try
+            {
+                return await _client.ResetAuthorization();
+            }
+            catch (TelegramReqestException ex)
+            {
+                if (ex.errorMessage == "FRESH_RESET_AUTHORISATION_FORBIDDEN")
+                {
+                    _logger.Error($"For security reasons, you can't terminate older sessions from a device that you've just connected.Please use an earlier connection or wait for a few hours.", ex);
+                }
+            }
+
+            return false;
+        }
+
         public async Task<bool> IsAvailabilityUserNameAsync(string userName)
         {
             string normalizedUserName = userName.TrimStart('@');
