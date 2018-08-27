@@ -62,7 +62,7 @@ namespace Telegram.Net.Core.Network
 
             do
             {
-                var availableBytes = await _tcpClient.GetStream().ReadAsync(buffer, bytesRead, neededToRead - bytesRead);
+                var availableBytes = await _stream.ReadAsync(buffer, bytesRead, neededToRead - bytesRead);
                 if (availableBytes == 0)
                 {
                     Debug.WriteLine("TcpTransport: read the connection termination 0 packet");
@@ -79,7 +79,7 @@ namespace Telegram.Net.Core.Network
         {
             await CheckConnectionState().ConfigureAwait(false);
 
-            await _tcpClient.GetStream().WriteAsync(encodedMessage, 0, encodedMessage.Length, cancellationToken).ConfigureAwait(false);
+            await _stream.WriteAsync(encodedMessage, 0, encodedMessage.Length, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task CheckConnectionState()
@@ -115,6 +115,7 @@ namespace Telegram.Net.Core.Network
         {
             if (_tcpClient != null)
             {
+                _stream.Dispose();
                 _tcpClient.Close();
                 _tcpClient = null;
             }
