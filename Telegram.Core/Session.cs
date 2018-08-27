@@ -14,18 +14,18 @@ namespace Telegram.Net.Core
         Session Load();
     }
 
-    public class Session
+    public class Session : ISession
     {
-        public string serverAddress;
-        public int port;
-        public AuthKey authKey;
-        public ulong id;
+        public string ServerAddress { get; set; }
+        public int Port { get; set; }
+        public User User { get; set; }
+        public int SessionExpires { get; set; }
+        public AuthKey AuthKey { get; set; }
+        public ulong Salt { get; set; }
+        public int TimeOffset { get; set; }
+        public ulong Id { get; set; }
         public int sequence;
-        public ulong salt;
-        public int timeOffset;
         public long lastMessageId;
-        public int sessionExpires;
-        public User user;
         private readonly Random _random;
 
         private readonly ISessionStore _store;
@@ -43,28 +43,28 @@ namespace Telegram.Net.Core
             using (var stream = new MemoryStream())
             using (var writer = new BinaryWriter(stream))
             {
-                writer.Write(id);
+                writer.Write(Id);
                 writer.Write(sequence);
-                writer.Write(salt);
+                writer.Write(Salt);
                 writer.Write(lastMessageId);
-                writer.Write(timeOffset);
-                Serializers.String.Write(writer, serverAddress);
-                writer.Write(port);
+                writer.Write(TimeOffset);
+                Serializers.String.Write(writer, ServerAddress);
+                writer.Write(Port);
 
-                if (user != null)
+                if (User != null)
                 {
                     writer.Write(1);
-                    writer.Write(sessionExpires);
-                    user.Write(writer);
+                    writer.Write(SessionExpires);
+                    User.Write(writer);
                 }
                 else
                 {
                     writer.Write(0);
                 }
 
-                if (authKey?.Data != null)
+                if (AuthKey?.Data != null)
                 {
-                    Serializers.Bytes.Write(writer, authKey.Data);
+                    Serializers.Bytes.Write(writer, AuthKey.Data);
                 }
 
                 return stream.ToArray();
@@ -97,16 +97,16 @@ namespace Telegram.Net.Core
 
                 return new Session(store)
                 {
-                    authKey = new AuthKey(authData),
-                    id = id,
-                    salt = salt,
+                    AuthKey = new AuthKey(authData),
+                    Id = id,
+                    Salt = salt,
                     sequence = sequence,
                     lastMessageId = lastMessageId,
-                    timeOffset = timeOffset,
-                    sessionExpires = sessionExpires,
-                    user = user,
-                    serverAddress = serverAddress,
-                    port = port
+                    TimeOffset = timeOffset,
+                    SessionExpires = sessionExpires,
+                    User = user,
+                    ServerAddress = serverAddress,
+                    Port = port
                 };
             }
         }
@@ -120,9 +120,9 @@ namespace Telegram.Net.Core
         {
             return store?.Load() ?? new Session(store)
             {
-                id = GenerateRandomUlong(),
-                serverAddress = serverAddress,
-                port = port
+                Id = GenerateRandomUlong(),
+                ServerAddress = serverAddress,
+                Port = port
             };
         }
 
@@ -139,7 +139,7 @@ namespace Telegram.Net.Core
             {
                 long time = Convert.ToInt64(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds);
 
-                long newMessageId = ((time / 1000 + timeOffset) << 32) |
+                long newMessageId = ((time / 1000 + TimeOffset) << 32) |
                                     ((time % 1000) << 22) |
                                     (_random.Next(524288) << 2); // 2^19
                                                                  // [ unix timestamp : 32 bit] [ milliseconds : 10 bit ] [ buffer space : 1 bit ] [ random : 19 bit ] [ msg_id type : 2 bit ] = [ msg_id : 64 bit ]
@@ -166,9 +166,9 @@ namespace Telegram.Net.Core
         {
             lock (generateSyncRoot)
             {
-                authKey = null;
-                user = null;
-                sessionExpires = 0;
+                AuthKey = null;
+                User = null;
+                SessionExpires = 0;
             }
         }
 
@@ -176,10 +176,10 @@ namespace Telegram.Net.Core
         {
             lock (generateSyncRoot)
             {
-                id = GenerateRandomUlong();
+                Id = GenerateRandomUlong();
                 lastMessageId = 0;
                 sequence = 0;
-                timeOffset = 0;
+                TimeOffset = 0;
             }
         }
     }

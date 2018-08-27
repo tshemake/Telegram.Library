@@ -21,7 +21,7 @@ namespace Telegram
             Run(AuthSendCodeAndSignIn, "auth.sendCode, auth.signIn");
             #endregion
             #region Список контактов
-            //Run(ContactsGetContacts, "contacts.getContacts");
+            Run(ContactsGetContacts, "contacts.getContacts");
             #endregion
             #region Поиск пользователя по имени
             //Run(ContactsResolveUsername, "contacts.resolveUsername");
@@ -47,7 +47,7 @@ namespace Telegram
             //Run(MessagesGetDialogs, "messages.getDialogs");
             #endregion
             #region Читаем сообщения
-            //Run(MessagesGetHistory, "messages.getHistory");
+            Run(MessagesGetHistory, "messages.getHistory");
             #endregion
             #region Проверяем коррестность логина
             //Run(AccountCheckUsername, "account.checkUsername");
@@ -65,7 +65,7 @@ namespace Telegram
             //Run(ContactsDeleteContacts, "contacts.deleteContacts");
             #endregion
             #region Закрытие всех сессий кроме текущей
-            Run(AuthResetAuthorizations, "auth.resetAuthorizations");
+            //Run(AuthResetAuthorizations, "auth.resetAuthorizations");
             #endregion
 
             Console.WriteLine("Press any key to exit...");

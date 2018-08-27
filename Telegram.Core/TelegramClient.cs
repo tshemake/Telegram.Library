@@ -10,6 +10,7 @@ using Telegram.Net.Core.Auth;
 using Telegram.Net.Core.MTProto;
 using Telegram.Net.Core.Network;
 using Telegram.Net.Core.Requests;
+using Telegram.Net.Core.Settings;
 using Telegram.Net.Core.Utils;
 using MD5 = System.Security.Cryptography.MD5;
 
@@ -49,9 +50,7 @@ namespace Telegram.Net.Core
 
         private readonly IDeviceInfoService _deviceInfo;
 
-        private readonly string _apiHash;
-        private readonly int _apiId;
-        private readonly Session _session;
+        private IClientSettings ClientSettings { get; set; }
 
         public bool IsConnected { get; set; }
         private bool _isClosed;
@@ -59,7 +58,7 @@ namespace Telegram.Net.Core
         private ConfigConstructor _configuration;
         private DcOptionsCollection _dcOptions;
 
-        public UserSelfConstructor AuthenticatedUser => _session.user.As<UserSelfConstructor>();
+        public UserSelfConstructor AuthenticatedUser => ClientSettings.Session.User.As<UserSelfConstructor>();
 
         public event EventHandler<ConnectionStateEventArgs> ConnectionStateChanged;
         public event EventHandler<Updates> UpdateMessage;
@@ -73,14 +72,16 @@ namespace Telegram.Net.Core
             if (string.IsNullOrEmpty(apiHash))
                 throw new ArgumentException("API_HASH is invalid", nameof(apiHash));
 
-            this._apiHash = apiHash;
-            this._apiId = apiId;
             this._deviceInfo = deviceInfo;
+
+            ClientSettings = Settings.ClientSettings.Instance;
+            ClientSettings.AppHash = apiHash;
+            ClientSettings.AppId = apiId;
 
             serverAddress = string.IsNullOrWhiteSpace(serverAddress) ? s_defaultMTProtoServerAddress : serverAddress;
             serverPort = serverPort == 0 ? s_defaultMTProtoServerPort : serverPort;
 
-            _session = Session.TryLoadOrCreateNew(serverAddress, serverPort, store);
+            ClientSettings.Session = Session.TryLoadOrCreateNew(serverAddress, serverPort, store);
         }
 
         public async Task<bool> Start()
@@ -116,7 +117,7 @@ namespace Telegram.Net.Core
             if (request.Error == RpcRequestError.MessageSeqNoTooLow)
             {
                 Debug.WriteLine("MessageSeqNoTooLow. Resoliving by resetting session and resending message");
-                _session.Reset();
+                ClientSettings.Session.Reset();
 
                 request.ResetError();
                 await _protoSender.Send(request);
@@ -126,11 +127,11 @@ namespace Telegram.Net.Core
             {
                 Debug.WriteLine("Invalid authorization");
 
-                _session.ResetAuth();
+                ClientSettings.Session.ResetAuth();
                 OnAuthenticationCanceled();
             }
 
-            _session.Save();
+            ClientSettings.Session.Save();
 
             // escalate
             if (throwOnError)
@@ -141,10 +142,10 @@ namespace Telegram.Net.Core
 
         private void OnUserAuthenticated(User user, int sessionExpiration)
         {
-            _session.user = user;
-            _session.sessionExpires = sessionExpiration;
+            ClientSettings.Session.User = user;
+            ClientSettings.Session.SessionExpires = sessionExpiration;
 
-            _session.Save();
+            ClientSettings.Session.Save();
         }
         private void OnProtoSenderBroken(object sender, EventArgs e)
         {
@@ -156,21 +157,21 @@ namespace Telegram.Net.Core
             await CloseProto();
 
             Debug.WriteLine("Creating new transport..");
-            if (_session.authKey == null)
+            if (ClientSettings.Session.AuthKey == null)
             {
-                Step3_Response result = await Authenticator.Authenticate(_session.serverAddress, _session.port);
+                Step3_Response result = await Authenticator.Authenticate(ClientSettings.Session.ServerAddress, ClientSettings.Session.Port);
 
-                _session.authKey = result.authKey;
-                _session.timeOffset = result.timeOffset;
-                _session.salt = result.serverSalt;
+                ClientSettings.Session.AuthKey = result.authKey;
+                ClientSettings.Session.TimeOffset = result.timeOffset;
+                ClientSettings.Session.Salt = result.serverSalt;
             }
 
-            _protoSender = new MtProtoSender(_session);
+            _protoSender = new MtProtoSender(ClientSettings.Session);
 
             Subscribe();
             _protoSender.Start();
 
-            var request = new InitConnectionAndGetConfigRequest(s_apiLayer, _apiId, _deviceInfo);
+            var request = new InitConnectionAndGetConfigRequest(s_apiLayer, ClientSettings.AppId, _deviceInfo);
             await SendRpcRequest(request);
 
             _configuration = request.config;
@@ -219,18 +220,18 @@ namespace Telegram.Net.Core
         private async Task<MtProtoSender> CreateProto(Session protoSession)
         {
             Debug.WriteLine("Creating new transport..");
-            if (protoSession.authKey == null)
+            if (protoSession.AuthKey == null)
             {
-                var authResult = await Authenticator.Authenticate(protoSession.serverAddress, protoSession.port);
+                var authResult = await Authenticator.Authenticate(protoSession.ServerAddress, protoSession.Port);
 
-                protoSession.authKey = authResult.authKey;
-                protoSession.timeOffset = authResult.timeOffset;
-                protoSession.salt = authResult.serverSalt;
+                protoSession.AuthKey = authResult.authKey;
+                protoSession.TimeOffset = authResult.timeOffset;
+                protoSession.Salt = authResult.serverSalt;
             }
 
             var proto = new MtProtoSender(protoSession, true);
 
-            var initRequest = new InitConnectionAndGetConfigRequest(s_apiLayer, _apiId, _deviceInfo);
+            var initRequest = new InitConnectionAndGetConfigRequest(s_apiLayer, ClientSettings.AppId, _deviceInfo);
             await proto.Send(initRequest);
 
             return proto;
@@ -242,9 +243,9 @@ namespace Telegram.Net.Core
             var newSession = Session.TryLoadOrCreateNew(dc.ipAddress, dc.port);
             if (dcId == _configuration.thisDc) // same dc
             {
-                newSession.authKey = _session.authKey;
-                newSession.salt = _session.salt;
-                newSession.timeOffset = _session.timeOffset;
+                newSession.AuthKey = ClientSettings.Session.AuthKey;
+                newSession.Salt = ClientSettings.Session.Salt;
+                newSession.TimeOffset = ClientSettings.Session.TimeOffset;
             }
 
             using (var proto = await CreateProto(newSession))
@@ -266,7 +267,7 @@ namespace Telegram.Net.Core
 
         #region Auth
 
-        public bool IsUserAuthorized { get => _session.user != null; }
+        public bool IsUserAuthorized { get => ClientSettings.Session.User != null; }
 
         //auth.checkPhone#6fe51dfb phone_number:string = auth.CheckedPhone;
         /// <summary>
@@ -296,7 +297,7 @@ namespace Telegram.Net.Core
         /// <returns>The method returns an auth.SentCode object with information on the message sent.</returns>
         public async Task<AuthSentCode> SendCode(string phoneNumber, VerificationCodeDeliveryType tokenDestination, string langCode = "en")
         {
-            var request = new AuthSendCodeRequest(phoneNumber, (int)tokenDestination, _apiId, _apiHash, langCode);
+            var request = new AuthSendCodeRequest(phoneNumber, (int)tokenDestination, ClientSettings.AppId, ClientSettings.AppHash, langCode);
             await SendRpcRequest(request, false);
 
             if (request.Error == RpcRequestError.MigrateDataCenter)
@@ -316,9 +317,9 @@ namespace Telegram.Net.Core
                     // set new dc options
                     var dcOpt = _dcOptions.GetDc(dcId);
 
-                    _session.authKey = null;
-                    _session.serverAddress = dcOpt.ipAddress;
-                    _session.port = dcOpt.port;
+                    ClientSettings.Session.AuthKey = null;
+                    ClientSettings.Session.ServerAddress = dcOpt.ipAddress;
+                    ClientSettings.Session.Port = dcOpt.port;
 
                     try
                     {

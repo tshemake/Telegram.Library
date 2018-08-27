@@ -22,7 +22,7 @@ namespace Telegram.Net.Core.Network
         private Exception exceptionForClosedConnection => new Exception("Channel was closed.");
 
         private readonly TcpTransport transport;
-        private readonly Session session;
+        private readonly ISession session;
 
         private readonly Dictionary<long, Tuple<MtProtoRequest, TaskCompletionSource<bool>>> runningRequests = new Dictionary<long, Tuple<MtProtoRequest, TaskCompletionSource<bool>>>();
         private List<long> needConfirmation = new List<long>();
@@ -35,15 +35,15 @@ namespace Telegram.Net.Core.Network
         public event EventHandler<Updates> UpdateMessage;
         public event EventHandler Broken;
 
-        public MtProtoSender(Session session, bool immediateStart = false)
+        public MtProtoSender(ISession session, bool immediateStart = false)
         {
-            dcServerAddress = session.serverAddress;
+            dcServerAddress = session.ServerAddress;
 
             this.session = session;
 
-            Debug.WriteLine($"Connecting to {session.serverAddress}:{session.port}..");
-            transport = new TcpTransport(session.serverAddress, session.port);
-            Debug.WriteLine($"Successfully connected to {session.serverAddress}:{session.port}");
+            Debug.WriteLine($"Connecting to {session.ServerAddress}:{session.Port}..");
+            transport = new TcpTransport();
+            Debug.WriteLine($"Successfully connected to {session.ServerAddress}:{session.Port}");
 
             if (immediateStart)
             {
@@ -196,15 +196,15 @@ namespace Telegram.Net.Core.Network
             {
                 using (var plaintextWriter = new BinaryWriter(plaintextPacket))
                 {
-                    plaintextWriter.Write(session.salt);
-                    plaintextWriter.Write(session.id);
+                    plaintextWriter.Write(session.Salt);
+                    plaintextWriter.Write(session.Id);
                     plaintextWriter.Write(request.MessageId);
                     plaintextWriter.Write(session.GetNextSequenceNumber(request));
                     plaintextWriter.Write(packet.Length);
                     plaintextWriter.Write(packet);
 
                     msgKey = Helpers.CalcMsgKey(plaintextPacket.GetBuffer());
-                    ciphertext = AES.EncryptAES(Helpers.CalcKey(session.authKey.Data, msgKey, true), plaintextPacket.GetBuffer());
+                    ciphertext = AES.EncryptAES(Helpers.CalcKey(session.AuthKey.Data, msgKey, true), plaintextPacket.GetBuffer());
                 }
             }
 
@@ -212,7 +212,7 @@ namespace Telegram.Net.Core.Network
             {
                 using (var writer = new BinaryWriter(ciphertextPacket))
                 {
-                    writer.Write(session.authKey.Id);
+                    writer.Write(session.AuthKey.Id);
                     writer.Write(msgKey);
                     writer.Write(ciphertext);
 
@@ -305,7 +305,7 @@ namespace Telegram.Net.Core.Network
 
                 long remoteAuthKeyId = inputReader.ReadInt64(); // TODO: check auth key id
                 byte[] msgKey = inputReader.ReadBytes(16); // TODO: check msg_key correctness
-                AESKeyData keyData = Helpers.CalcKey(session.authKey.Data, msgKey, false);
+                AESKeyData keyData = Helpers.CalcKey(session.AuthKey.Data, msgKey, false);
 
                 byte[] plaintext = AES.DecryptAES(keyData, inputReader.ReadBytes((int)(inputStream.Length - inputStream.Position)));
 
@@ -410,7 +410,7 @@ namespace Telegram.Net.Core.Network
             int errorCode = messageReader.ReadInt32();
             ulong newSalt = messageReader.ReadUInt64();
 
-            session.salt = newSalt;
+            session.Salt = newSalt;
 
             if (!runningRequests.ContainsKey(badMsgId))
                 return;
@@ -455,7 +455,7 @@ namespace Telegram.Net.Core.Network
             var serverSalt = messageReader.ReadUInt64();
 
             Debug.WriteLine("New server session created");
-            session.salt = serverSalt;
+            session.Salt = serverSalt;
         }
 
         #endregion

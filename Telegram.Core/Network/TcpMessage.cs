@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Ionic.Crc;
 
 namespace Telegram.Net.Core.Network
@@ -8,6 +10,8 @@ namespace Telegram.Net.Core.Network
     {
         public readonly int sequneceNumber;
         public readonly byte[] body;
+        public CancellationToken CancellationToken;
+        public TaskCompletionSource<bool> TaskCompletionSource;
 
         public TcpMessage(int sequneceNumber, byte[] body)
         {
@@ -16,6 +20,13 @@ namespace Telegram.Net.Core.Network
 
             this.sequneceNumber = sequneceNumber;
             this.body = body;
+        }
+
+        public TcpMessage(int sequneceNumber, byte[] body, TaskCompletionSource<bool> tcs, CancellationToken token)
+            : this(sequneceNumber, body)
+        {
+            TaskCompletionSource = tcs;
+            CancellationToken = token;
         }
 
         public byte[] Encode()

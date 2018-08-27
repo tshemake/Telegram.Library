@@ -8,7 +8,7 @@ namespace Telegram.Net.Core.Auth
     {
         public static async Task<Step3_Response> Authenticate(string serverAddress, int port)
         {
-            using (var transport = new TcpTransport(serverAddress, port))
+            using (var transport = new TcpTransport())
             {
                 var sender = new MtProtoPlainSender(transport);
                 var step1 = new Step1_PQRequest();
