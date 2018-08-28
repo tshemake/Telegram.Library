@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Telegram.Net.Core.Network.Exceptions
 {
-    public sealed class PhoneNumberInvalidException : Exception
+    public class PhoneNumberInvalidException : Exception
     {
         internal PhoneNumberInvalidException() : base("Phone number is invalid or not registered on the server")
         {

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Telegram.Net.Core.Network.Exceptions
 {
-    public sealed class FileMigrationException : DataCenterMigrationException
+    public class FileMigrationException : DataCenterMigrationException
     {
         internal FileMigrationException(int dc)
             : base($"File located on a different DC: {dc}.", dc)

@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Telegram.Net.Core.Network.Exceptions;
 using Telegram.Net.Core.Settings;
 
 namespace Telegram.Net.Core.Network
@@ -100,7 +101,7 @@ namespace Telegram.Net.Core.Network
 
                         if (previouslyConnected)
                         {
-                            throw new Exception();
+                            throw new DisconnectedException();
                         }
                     }
                 }

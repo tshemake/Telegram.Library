@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Telegram.Net.Core.Network.Exceptions
 {
-    public sealed class FloodWaitException : Exception
+    public class FloodWaitException : Exception
     {
         public TimeSpan TimeToWait { get; }
 

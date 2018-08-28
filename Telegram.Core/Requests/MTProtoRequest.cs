@@ -94,10 +94,16 @@ namespace Telegram.Net.Core.Requests
                     throw new UserMigrationException(userMigrateDcIdx);
 
                 case "PHONE_CODE_INVALID":
-                    throw new PhoneCodeInvalidException("The numeric code used to authenticate does not match the numeric code sent by SMS/Telegram");
+                    throw new PhoneCodeInvalidException();
+
+                case "PHONE_NUMBER_INVALID":
+                    throw new PhoneNumberInvalidException();
+
+                case "PHONE_NUMBER_UNOCCUPIED":
+                    throw new PhoneNumberUnoccupiedException();
 
                 case "SESSION_PASSWORD_NEEDED":
-                    throw new CloudPasswordNeededException("This Account has Cloud Password !");
+                    throw new CloudPasswordNeededException();
 
                 case "AUTH_RESTART":
                     throw new AuthRestartException();

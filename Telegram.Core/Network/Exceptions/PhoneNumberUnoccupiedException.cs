@@ -6,10 +6,7 @@ using System.Threading.Tasks;
 
 namespace Telegram.Net.Core.Network.Exceptions
 {
-    public class CloudPasswordNeededException : Exception
+    public class PhoneNumberUnoccupiedException : Exception
     {
-        internal CloudPasswordNeededException() : base("This Account has Cloud Password!")
-        {
-        }
     }
 }

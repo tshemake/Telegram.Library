@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Telegram.Net.Core.Network.Exceptions
 {
-    public sealed class UserMigrationException : DataCenterMigrationException
+    public class UserMigrationException : DataCenterMigrationException
     {
         internal UserMigrationException(int dc)
             : base($"User located on a different DC: {dc}.", dc)

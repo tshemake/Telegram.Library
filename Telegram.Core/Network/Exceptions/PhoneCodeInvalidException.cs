@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Telegram.Net.Core.Network.Exceptions
 {
-    public sealed class PhoneCodeInvalidException : Exception
+    public class PhoneCodeInvalidException : Exception
     {
-        internal PhoneCodeInvalidException(string msg) : base(msg)
+        internal PhoneCodeInvalidException() : base("The numeric code used to authenticate does not match the numeric code sent by SMS/Telegram")
         {
         }
     }
