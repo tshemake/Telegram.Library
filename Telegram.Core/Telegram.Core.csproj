@@ -76,6 +76,7 @@
     <Compile Include="Network\Exceptions\AuthRestartException.cs" />
     <Compile Include="Network\Exceptions\DisconnectedException.cs" />
     <Compile Include="Network\Exceptions\UserLogoutException.cs" />
+    <Compile Include="Network\Exceptions\NetworkMigrationException.cs" />
     <Compile Include="Network\Exceptions\UserMigrationException.cs" />
     <Compile Include="Network\ITcpService.cs" />
     <Compile Include="Network\ITcpTransport.cs" />

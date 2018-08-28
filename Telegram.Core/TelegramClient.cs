@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Telegram.Net.Core.Auth;
 using Telegram.Net.Core.MTProto;
 using Telegram.Net.Core.Network;
+using Telegram.Net.Core.Network.Exceptions;
 using Telegram.Net.Core.Requests;
 using Telegram.Net.Core.Settings;
 using Telegram.Net.Core.Utils;
@@ -297,45 +298,42 @@ namespace Telegram.Net.Core
         /// <returns>The method returns an auth.SentCode object with information on the message sent.</returns>
         public async Task<AuthSentCode> SendCode(string phoneNumber, VerificationCodeDeliveryType tokenDestination, string langCode = "en")
         {
-            var request = new AuthSendCodeRequest(phoneNumber, (int)tokenDestination, ClientSettings.AppId, ClientSettings.AppHash, langCode);
-            await SendRpcRequest(request, false);
-
-            if (request.Error == RpcRequestError.MigrateDataCenter)
+            AuthSendCodeRequest request = new AuthSendCodeRequest(phoneNumber, (int)tokenDestination, ClientSettings.AppId, ClientSettings.AppHash, langCode);
+            try
             {
-                if (request.ErrorMessage.StartsWith("PHONE_MIGRATE_") ||
-                    request.ErrorMessage.StartsWith("NETWORK_MIGRATE_") ||
-                    request.ErrorMessage.StartsWith("USER_MIGRATE_"))
+                await SendRpcRequest(request, false);
+            }
+            catch (DataCenterMigrationException ex)
+            {
+                Debug.WriteLine($"Trying to resolve error: {ex.Message}.");
+
+                var dcIdStr = Regex.Match(request.ErrorMessage, @"\d+").Value;
+                var dcId = ex.Dc;
+
+                // close
+                await CloseProto();
+
+                // set new dc options
+                DcOptionConstructor dcOpt = _dcOptions.GetDc(dcId);
+
+                ClientSettings.Session.AuthKey = null;
+                ClientSettings.Session.ServerAddress = dcOpt.ipAddress;
+                ClientSettings.Session.Port = dcOpt.port;
+
+                try
                 {
-                    Debug.WriteLine($"Trying to resolve error: {request.ErrorMessage}.");
-
-                    var dcIdStr = Regex.Match(request.ErrorMessage, @"\d+").Value;
-                    var dcId = int.Parse(dcIdStr);
-
-                    // close
-                    await CloseProto();
-
-                    // set new dc options
-                    var dcOpt = _dcOptions.GetDc(dcId);
-
-                    ClientSettings.Session.AuthKey = null;
-                    ClientSettings.Session.ServerAddress = dcOpt.ipAddress;
-                    ClientSettings.Session.Port = dcOpt.port;
-
-                    try
-                    {
-                        Debug.WriteLine($"Reconnecting to dc {dcId} - {dcOpt.ipAddress}");
-                        await ReconnectImpl();
-                    }
-                    catch (Exception)
-                    {
-                        StartReconnecting().IgnoreAwait();
-                        throw;
-                    }
-
-                    // try one more time
-                    request.ResetError();
-                    await SendRpcRequest(request);
+                    Debug.WriteLine($"Reconnecting to dc {dcId} - {dcOpt.ipAddress}");
+                    await ReconnectImpl();
                 }
+                catch (Exception)
+                {
+                    StartReconnecting().IgnoreAwait();
+                    throw;
+                }
+
+                // try one more time
+                request.ResetError();
+                await SendRpcRequest(request);
             }
 
             request.ThrowIfHasError();

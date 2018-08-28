@@ -93,6 +93,10 @@ namespace Telegram.Net.Core.Requests
                     var userMigrateDcIdx = ExtractNumber(userMigrate);
                     throw new UserMigrationException(userMigrateDcIdx);
 
+                case var networkMigrate when networkMigrate.StartsWith("NETWORK_MIGRATE_"):
+                    var networkMigrateDcIdx = ExtractNumber(networkMigrate);
+                    throw new NetworkMigrationException(networkMigrateDcIdx);
+
                 case "PHONE_CODE_INVALID":
                     throw new PhoneCodeInvalidException();
 
