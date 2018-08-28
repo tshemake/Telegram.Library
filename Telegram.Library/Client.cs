@@ -8,9 +8,11 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Net.Core;
 using Telegram.Net.Core.MTProto;
+using Telegram.Net.Core.Network.Exceptions;
 using Telegram.Net.Core.Requests;
 using TeleSharp.TL;
 
@@ -27,6 +29,8 @@ namespace Telegram
         private IConfiguration ConfigurationManager { get; }
 
         public event EventHandler<Models.Message> UpdateMessage;
+
+        public int CurrentUserId => _client.AuthenticatedUser.id;
 
         private bool disposed = false;
 
@@ -72,14 +76,23 @@ namespace Telegram
 
             if (!IsUserAuthorized)
             {
-                Console.WriteLine($"We've sent a code with an activation code to yout phone {ConfigurationManager.PhoneNumber}.");
-                AuthSentCode codeRequest = await _client.SendCode(ConfigurationManager.PhoneNumber, VerificationCodeDeliveryType.NumericCodeViaTelegram);
-                ConfigurationManager.PhoneCodeHash = codeRequest.phoneCodeHash;
+                try
+                {
+                    Console.WriteLine($"We've sent a code with an activation code to yout phone {ConfigurationManager.PhoneNumber}.");
+                    AuthSentCode codeRequest = await _client.SendCode(ConfigurationManager.PhoneNumber, VerificationCodeDeliveryType.NumericCodeViaTelegram);
+                    ConfigurationManager.PhoneCodeHash = codeRequest.phoneCodeHash;
 
-                Console.WriteLine("Code: ");
-                var code = Console.ReadLine();
+                    Console.WriteLine("Code: ");
+                    var code = Console.ReadLine();
 
-                await _client.SignIn(ConfigurationManager.PhoneNumber, ConfigurationManager.PhoneCodeHash, code);
+                    await _client.SignIn(ConfigurationManager.PhoneNumber, ConfigurationManager.PhoneCodeHash, code);
+                    Debug.WriteLine($"User login. Current user is {_client.AuthenticatedUser.firstName} {_client.AuthenticatedUser.lastName}");
+                }
+                catch (FloodWaitException ex)
+                {
+                    await Task.Delay(ex.TimeToWait);
+                    await InitializeAndAuthenticateClientAsync();
+                }
             }
         }
 
@@ -100,10 +113,10 @@ namespace Telegram
             MessagesDialogs result = await _client.GetDialogs(0, limit);
             if (result is MessagesDialogsConstructor messagesDialogsConstructor)
             {
-                messagesDialog.Dialogs.AddRange(messagesDialogsConstructor.dialogs.Select(d => (Models.Dialog)d));
-                messagesDialog.Messages.AddRange(messagesDialogsConstructor.messages.Select(m => (Models.Message)m));
-                messagesDialog.AddChats(messagesDialogsConstructor.chats.Select(c => (Models.Chat)c));
-                messagesDialog.AddContacts(messagesDialogsConstructor.users.Select(u => (Models.Contact)u));
+                messagesDialog.Dialogs.AddRange(messagesDialogsConstructor.dialogs.Select(d => (Models.Dialog)d).Where(d => d != null));
+                messagesDialog.Messages.AddRange(messagesDialogsConstructor.messages.Select(m => (Models.Message)m).Where(m => m != null));
+                messagesDialog.AddChats(messagesDialogsConstructor.chats.Select(c => (Models.Chat)c).Where(c => c != null));
+                messagesDialog.AddContacts(messagesDialogsConstructor.users.Select(u => (Models.Contact)u).Where(u => u != null));
             }
             else if (result is MessagesDialogsSliceConstructor messagesDialogsSliceConstructor)
             {
@@ -112,10 +125,10 @@ namespace Telegram
                 do
                 {
                     total += limit;
-                    messagesDialog.Dialogs.AddRange(messagesDialogsSliceConstructor.dialogs.Select(d => (Models.Dialog)d));
-                    messagesDialog.Messages.AddRange(messagesDialogsSliceConstructor.messages.Select(m => (Models.Message)m));
-                    messagesDialog.AddChats(messagesDialogsSliceConstructor.chats.Select(c => (Models.Chat)c));
-                    messagesDialog.AddContacts(messagesDialogsSliceConstructor.users.Select(u => (Models.Contact)u));
+                    messagesDialog.Dialogs.AddRange(messagesDialogsSliceConstructor.dialogs.Select(d => (Models.Dialog)d).Where(d => d != null));
+                    messagesDialog.Messages.AddRange(messagesDialogsSliceConstructor.messages.Select(m => (Models.Message)m).Where(m => m != null));
+                    messagesDialog.AddChats(messagesDialogsSliceConstructor.chats.Select(c => (Models.Chat)c).Where(c => c != null));
+                    messagesDialog.AddContacts(messagesDialogsSliceConstructor.users.Select(u => (Models.Contact)u).Where(u => u != null));
                     if (total > count)
                         break;
                     result = await _client.GetDialogs(total, limit);
@@ -190,7 +203,7 @@ namespace Telegram
             }
             else
             {
-               sentMessage = await _client.SendMessage(new InputPeerContactConstructor(contact.Id), message);
+                sentMessage = await _client.SendMessage(new InputPeerContactConstructor(contact.Id), message);
             }
             return (Models.SentMessage)sentMessage;
         }
@@ -229,7 +242,7 @@ namespace Telegram
             await ConnectAsync();
 
             List<ContactStatus> contactStatuses = await _client.GetStatuses();
-            return contactStatuses.Select(status => (Models.ContactStatus)status).ToList();
+            return contactStatuses.Select(status => (Models.ContactStatus)status).Where(s => s != null).ToList();
         }
 
         /// <summary>
@@ -327,9 +340,9 @@ namespace Telegram
             MessagesMessages result = await _client.GetHistory(peer, 0, limit);
             if (result is MessagesMessagesConstructor messagesMessagesConstructor)
             {
-                history.Messages.AddRange(messagesMessagesConstructor.messages.Select(m => (Models.Message)m));
-                history.AddChats(messagesMessagesConstructor.chats.Select(c => (Models.Chat)c));
-                history.AddContacts(messagesMessagesConstructor.users.Select(u => (Models.Contact)u));
+                history.Messages.AddRange(messagesMessagesConstructor.messages.Select(m => (Models.Message)m).Where(m => m != null));
+                history.AddChats(messagesMessagesConstructor.chats.Select(c => (Models.Chat)c).Where(c => c != null));
+                history.AddContacts(messagesMessagesConstructor.users.Select(u => (Models.Contact)u).Where(u => u != null));
             }
             else if (result is MessagesMessagesSliceConstructor messagesMessagesSliceConstructor)
             {
@@ -338,9 +351,9 @@ namespace Telegram
                 do
                 {
                     total += limit;
-                    history.Messages.AddRange(messagesMessagesSliceConstructor.messages.Select(m => (Models.Message)m));
-                    history.AddChats(messagesMessagesSliceConstructor.chats.Select(c => (Models.Chat)c));
-                    history.AddContacts(messagesMessagesSliceConstructor.users.Select(u => (Models.Contact)u));
+                    history.Messages.AddRange(messagesMessagesSliceConstructor.messages.Select(m => (Models.Message)m).Where(m => m != null));
+                    history.AddChats(messagesMessagesSliceConstructor.chats.Select(c => (Models.Chat)c).Where(c => c != null));
+                    history.AddContacts(messagesMessagesSliceConstructor.users.Select(u => (Models.Contact)u).Where(u => u != null));
                     if (total > count)
                         break;
                     result = await _client.GetHistory(peer, total, limit);
@@ -372,8 +385,8 @@ namespace Telegram
 
                 if (differenceUpdate.newMessages.Count > 0)
                 {
-                    IEnumerable<Models.Contact> users = differenceUpdate.users.Select(u => ((Models.Contact)u));
-                    IEnumerable<Models.Message> messages = differenceUpdate.newMessages.Select(m => (Models.Message)m);
+                    IEnumerable<Models.Contact> users = differenceUpdate.users.Select(u => ((Models.Contact)u)).Where(u => u != null);
+                    IEnumerable<Models.Message> messages = differenceUpdate.newMessages.Select(m => (Models.Message)m).Where(m => m != null);
                     IDictionary<int, int> lastMessageIds = new Dictionary<int, int>();
 
                     foreach (Models.Message message in messages)

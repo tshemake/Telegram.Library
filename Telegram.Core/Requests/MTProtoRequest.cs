@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using Telegram.Net.Core.MTProto;
+using Telegram.Net.Core.Network.Exceptions;
 
 namespace Telegram.Net.Core.Requests
 {
@@ -58,8 +60,50 @@ namespace Telegram.Net.Core.Requests
         {
             if (Error != RpcRequestError.None)
             {
-                Debug.WriteLine($"Throwing exception for request {this.GetType().Name} because of error {Error} - {ErrorMessage}");
-                throw new TelegramReqestException(Error, ErrorMessage);
+                HandleRpcError();
+            }
+        }
+
+        private static int ExtractNumber(string line)
+        {
+            return int.Parse(Regex.Match(line, @"\d+").Value, System.Globalization.NumberStyles.Number);
+        }
+
+        private void HandleRpcError()
+        {
+            // rpc_error
+
+            Debug.WriteLine($"Throwing exception for request {GetType().Name} because of error {Error} - {ErrorMessage}");
+
+            switch (ErrorMessage)
+            {
+                case var floodMessage when floodMessage.StartsWith("FLOOD_WAIT_"):
+                    var seconds = ExtractNumber(floodMessage);
+                    throw new FloodWaitException(TimeSpan.FromSeconds(seconds));
+
+                case var phoneMigrate when phoneMigrate.StartsWith("PHONE_MIGRATE_"):
+                    var phoneMigrateDcIdx = ExtractNumber(phoneMigrate);
+                    throw new PhoneMigrationException(phoneMigrateDcIdx);
+
+                case var fileMigrate when fileMigrate.StartsWith("FILE_MIGRATE_"):
+                    var fileMigrateDcIdx = ExtractNumber(fileMigrate);
+                    throw new FileMigrationException(fileMigrateDcIdx);
+
+                case var userMigrate when userMigrate.StartsWith("USER_MIGRATE_"):
+                    var userMigrateDcIdx = ExtractNumber(userMigrate);
+                    throw new UserMigrationException(userMigrateDcIdx);
+
+                case "PHONE_CODE_INVALID":
+                    throw new PhoneCodeInvalidException("The numeric code used to authenticate does not match the numeric code sent by SMS/Telegram");
+
+                case "SESSION_PASSWORD_NEEDED":
+                    throw new CloudPasswordNeededException("This Account has Cloud Password !");
+
+                case "AUTH_RESTART":
+                    throw new AuthRestartException();
+
+                default:
+                    throw new TelegramReqestException(Error, ErrorMessage);
             }
         }
     }

@@ -72,7 +72,7 @@ namespace Telegram.Net.Core
             if (string.IsNullOrEmpty(apiHash))
                 throw new ArgumentException("API_HASH is invalid", nameof(apiHash));
 
-            this._deviceInfo = deviceInfo;
+            _deviceInfo = deviceInfo;
 
             ClientSettings = Settings.ClientSettings.Instance;
             ClientSettings.AppHash = apiHash;

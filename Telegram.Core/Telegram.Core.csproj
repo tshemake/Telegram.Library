@@ -65,6 +65,16 @@
     <Compile Include="MTProto\Crypto\Salt.cs" />
     <Compile Include="MTProto\Serializers.cs" />
     <Compile Include="MTProto\TLObject.cs" />
+    <Compile Include="Network\Exceptions\CloudPasswordNeededException.cs" />
+    <Compile Include="Network\Exceptions\DataCenterMigrationException.cs" />
+    <Compile Include="Network\Exceptions\FileMigrationException.cs" />
+    <Compile Include="Network\Exceptions\PhoneMigrationException.cs" />
+    <Compile Include="Network\Exceptions\FloodWaitException.cs" />
+    <Compile Include="Network\Exceptions\PhoneCodeInvalidException.cs" />
+    <Compile Include="Network\Exceptions\PhoneNumberInvalidException.cs" />
+    <Compile Include="Network\Exceptions\AuthRestartException.cs" />
+    <Compile Include="Network\Exceptions\UserLogoutException.cs" />
+    <Compile Include="Network\Exceptions\UserMigrationException.cs" />
     <Compile Include="Network\ITcpService.cs" />
     <Compile Include="Network\ITcpTransport.cs" />
     <Compile Include="Network\MtProtoPlainSender.cs" />
