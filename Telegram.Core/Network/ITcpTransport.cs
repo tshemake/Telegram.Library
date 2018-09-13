@@ -13,6 +13,6 @@ namespace Telegram.Net.Core.Network
 
         Task<TcpMessage> Receieve();
 
-        Task Send(byte[] packet, CancellationToken cancellationToken);
+        Task<Task<bool>> Send(byte[] packet, CancellationToken cancellationToken);
     }
 }

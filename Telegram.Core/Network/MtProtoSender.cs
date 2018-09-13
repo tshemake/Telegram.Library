@@ -41,9 +41,9 @@ namespace Telegram.Net.Core.Network
 
             this.session = session;
 
-            Debug.WriteLine($"Connecting to {session.ServerAddress}:{session.Port}..");
+            Debug.WriteLine($"Connecting to {session.ServerAddress}:{session.Port}.");
             transport = new TcpTransport();
-            Debug.WriteLine($"Successfully connected to {session.ServerAddress}:{session.Port}");
+            Debug.WriteLine($"Successfully connected to {session.ServerAddress}:{session.Port}.");
 
             if (immediateStart)
             {

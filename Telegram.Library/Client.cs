@@ -28,7 +28,7 @@ namespace Telegram
 
         private IConfiguration ConfigurationManager { get; }
 
-        public event EventHandler<Models.Message> UpdateMessage;
+        public event EventHandler<Models.Message> OnUpdateMessage;
 
         public int CurrentUserId => _client.AuthenticatedUser.id;
 
@@ -391,7 +391,7 @@ namespace Telegram
 
                     foreach (Models.Message message in messages)
                     {
-                        UpdateMessage(this, message);
+                        OnUpdateMessage(this, message);
                         lastMessageIds[message.FromId] = message.Id;
                     }
                     foreach (Models.Contact user in users)

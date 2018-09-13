@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Telegram.Core.Utils;
+
 #pragma warning disable 675
 
 namespace Telegram.Net.Core.Network
@@ -23,6 +25,8 @@ namespace Telegram.Net.Core.Network
 
         public async Task Send(byte[] data)
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             using (var memoryStream = new MemoryStream())
             {
                 using (var binaryWriter = new BinaryWriter(memoryStream))
@@ -41,7 +45,9 @@ namespace Telegram.Net.Core.Network
 
         public async Task<byte[]> Receive()
         {
-            var result = await transport.Receieve();
+            await AsyncHelper.RedirectToThreadPool();
+
+            TcpMessage result = await transport.Receieve();
 
             using (var memoryStream = new MemoryStream(result.body))
             {

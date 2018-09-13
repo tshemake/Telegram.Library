@@ -21,7 +21,7 @@ namespace Telegram
             Run(AuthSendCodeAndSignIn, "auth.sendCode, auth.signIn");
             #endregion
             #region Список контактов
-            Run(ContactsGetContacts, "contacts.getContacts");
+            //Run(ContactsGetContacts, "contacts.getContacts");
             #endregion
             #region Поиск пользователя по имени
             //Run(ContactsResolveUsername, "contacts.resolveUsername");
@@ -36,7 +36,7 @@ namespace Telegram
             //Run(AuthСheckPhone, "auth.checkPhone"); // На текущий момент всегда возвращает true
             #endregion
             #region Отправка сообщения
-            //Run(MessagesSendMessage, "messages.sendMessage");
+            Run(MessagesSendMessage, "messages.sendMessage");
             #endregion
             #region Отпаравляем статус о печати и прекращении печати
             //Run(SendMessageTypingAction, "messages.setTyping");
@@ -47,7 +47,7 @@ namespace Telegram
             //Run(MessagesGetDialogs, "messages.getDialogs");
             #endregion
             #region Читаем сообщения
-            Run(MessagesGetHistory, "messages.getHistory");
+            //Run(MessagesGetHistory, "messages.getHistory");
             #endregion
             #region Проверяем коррестность логина
             //Run(AccountCheckUsername, "account.checkUsername");

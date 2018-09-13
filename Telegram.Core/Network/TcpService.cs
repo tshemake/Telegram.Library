@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Telegram.Core.Utils;
 using Telegram.Net.Core.Network.Exceptions;
 using Telegram.Net.Core.Settings;
 
@@ -23,6 +24,8 @@ namespace Telegram.Net.Core.Network
 
         public async Task Connect()
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             _tcpClient = new TcpClient
             {
                 LingerState = new LingerOption(true, 1)
@@ -30,7 +33,7 @@ namespace Telegram.Net.Core.Network
 
             _tcpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
-            await _tcpClient.ConnectAsync(ClientSettings.Session.ServerAddress, ClientSettings.Session.Port).ConfigureAwait(false);
+            await _tcpClient.ConnectAsync(ClientSettings.Session.ServerAddress, ClientSettings.Session.Port);
             _stream = _tcpClient.GetStream();
 
             _stream.ReadTimeout = (int)TimeSpan.FromMinutes(1).TotalMilliseconds;
@@ -57,7 +60,9 @@ namespace Telegram.Net.Core.Network
 
         public async Task<int> Read(byte[] buffer, int offset, int neededToRead, CancellationToken cancellationToken)
         {
-            await CheckConnectionState().ConfigureAwait(false);
+            await AsyncHelper.RedirectToThreadPool();
+
+            await CheckConnectionState();
 
             var bytesRead = 0;
 
@@ -78,16 +83,20 @@ namespace Telegram.Net.Core.Network
 
         public async Task Send(byte[] encodedMessage, CancellationToken cancellationToken)
         {
-            await CheckConnectionState().ConfigureAwait(false);
+            await AsyncHelper.RedirectToThreadPool();
 
-            await _stream.WriteAsync(encodedMessage, 0, encodedMessage.Length, cancellationToken).ConfigureAwait(false);
+            await CheckConnectionState();
+
+            await _stream.WriteAsync(encodedMessage, 0, encodedMessage.Length, cancellationToken);
         }
 
         private async Task CheckConnectionState()
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             if (!IsTcpClientConnected())
             {
-                await _semaphore.WaitAsync().ConfigureAwait(false);
+                await _semaphore.WaitAsync();
 
                 try
                 {
@@ -97,7 +106,7 @@ namespace Telegram.Net.Core.Network
 
                         Disconnect();
 
-                        await Connect().ConfigureAwait(false);
+                        await Connect();
 
                         if (previouslyConnected)
                         {

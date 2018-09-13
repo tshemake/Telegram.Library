@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Telegram.Core.Utils;
 
 namespace Telegram.Net.Core.Network
 {
@@ -26,12 +27,14 @@ namespace Telegram.Net.Core.Network
 
         public async Task<TcpMessage> Receieve()
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             var cancellationToken = default(CancellationToken);
 
             // packet length
             var packetLengthBytes = new byte[4];
 
-            var readLenghtBytes = await TcpService.Read(packetLengthBytes, 0, 4, cancellationToken).ConfigureAwait(false);
+            var readLenghtBytes = await TcpService.Read(packetLengthBytes, 0, 4, cancellationToken);
             if (readLenghtBytes != 4)
             {
                 throw new InvalidOperationException("Couldn't read the packet length");
@@ -41,7 +44,7 @@ namespace Telegram.Net.Core.Network
 
             // seq
             var seqBytes = new byte[4];
-            var readSeqBytes = await TcpService.Read(seqBytes, 0, 4, cancellationToken).ConfigureAwait(false);
+            var readSeqBytes = await TcpService.Read(seqBytes, 0, 4, cancellationToken);
 
             if (readSeqBytes != 4)
             {
@@ -60,7 +63,7 @@ namespace Telegram.Net.Core.Network
 
             var neededToRead = packetLength - 12;
             var bodyBytes = new byte[neededToRead];
-            var readBodyBytes = await TcpService.Read(bodyBytes, 0, neededToRead, cancellationToken).ConfigureAwait(false);
+            var readBodyBytes = await TcpService.Read(bodyBytes, 0, neededToRead, cancellationToken);
             if (readBodyBytes != neededToRead)
             {
                 throw new InvalidOperationException("Couldn't read the crc");
@@ -74,7 +77,7 @@ namespace Telegram.Net.Core.Network
 
             // crc
             var crcBytes = new byte[4];
-            var readCrcBytes = await TcpService.Read(crcBytes, 0, 4, cancellationToken).ConfigureAwait(false);
+            var readCrcBytes = await TcpService.Read(crcBytes, 0, 4, cancellationToken);
             if (readCrcBytes != 4)
             {
                 throw new InvalidOperationException("Couldn't read the crc");
@@ -98,24 +101,30 @@ namespace Telegram.Net.Core.Network
             return checksum == validChecksum;
         }
 
-        public Task Send(byte[] packet, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<Task<bool>> Send(byte[] packet, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var tcs = new TaskCompletionSource<bool>();
+            await AsyncHelper.RedirectToThreadPool();
 
-            var tcpMessage = new TcpMessage(_messageSequenceNumber, packet, tcs, cancellationToken);
-            PushToQueue(tcpMessage);
+            TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+
+            TcpMessage tcpMessage = new TcpMessage(_messageSequenceNumber, packet, tcs, cancellationToken);
+            await PushToQueue(tcpMessage);
 
             return tcs.Task;
         }
 
-        private void PushToQueue(TcpMessage message)
+        private async Task PushToQueue(TcpMessage message)
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             _messageQueue.Enqueue(message);
-            SendAllMessagesFromQueue().ConfigureAwait(false);
+            await SendAllMessagesFromQueue();
         }
 
         private async Task SendAllMessagesFromQueue()
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             await _semaphoreSlim.WaitAsync().ContinueWith(
                 async _ =>
                 {
@@ -123,7 +132,7 @@ namespace Telegram.Net.Core.Network
                     {
                         try
                         {
-                            await SendFromQueue().ConfigureAwait(false);
+                            await SendFromQueue();
                         }
                         catch (Exception ex)
                         {
@@ -139,11 +148,13 @@ namespace Telegram.Net.Core.Network
                     {
                         _semaphoreSlim.Release();
                     }
-                }).ConfigureAwait(false);
+                });
         }
 
         private async Task SendFromQueue()
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             while (!_messageQueue.IsEmpty)
             {
                 _messageQueue.TryDequeue(out var item);
@@ -151,7 +162,7 @@ namespace Telegram.Net.Core.Network
 
                 try
                 {
-                    await SendMessage(message).ConfigureAwait(false);
+                    await SendMessage(message);
                     message.TaskCompletionSource.SetResult(true);
                 }
                 catch (Exception ex)
@@ -165,13 +176,15 @@ namespace Telegram.Net.Core.Network
 
         public async Task SendMessage(TcpMessage tcpMessage)
         {
+            await AsyncHelper.RedirectToThreadPool();
+
             var mesSeqNo = _messageSequenceNumber++;
 
             Debug.WriteLine($"Sending message with seq_no {mesSeqNo}");
 
             var encodedMessage = tcpMessage.Encode();
 
-            await TcpService.Send(encodedMessage, tcpMessage.CancellationToken).ConfigureAwait(false);
+            await TcpService.Send(encodedMessage, tcpMessage.CancellationToken);
         }
 
         public void Disconnect()

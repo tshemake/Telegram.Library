@@ -134,6 +134,7 @@
     <Compile Include="Settings\IClientSettings.cs" />
     <Compile Include="TelegramClient.cs" />
     <Compile Include="TelegramReqestException.cs" />
+    <Compile Include="Utils\AsyncHelper.cs" />
     <Compile Include="Utils\BiDictionary.cs" />
     <Compile Include="Utils\Helpers.cs" />
   </ItemGroup>
